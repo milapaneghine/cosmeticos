@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#7B6FA0">
+<title>Beauty Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='75' font-size='75'%3E%E2%9C%A8%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.7.0/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#FDFBFF;--surface:#fff;--border:#E5DDF0;--border-strong:#CFC5E5;
+  --text:#2A2042;--text-soft:#6E6285;--text-mute:#9A8FB0;
+  --pk:#F4B8CC;--pkl:#FEF0F5;
+  --bl:#A8CCE8;--bld:#1A3A5C;--bll:#EBF4FB;
+  --lv:#C2AEE2;--lvd:#3A2E58;--lvl:#F3EEF9;
+  --mn:#7BCBA3;--mnd:#0F3D28;--mnl:#EAF7F0;
+  --am:#F5C97A;--amd:#5A3800;--aml:#FFF8E6;
+  --rd:#E8829A;--rdd:#7A1F38;--rdl:#FCEEF2;
+  --pu:#7B6FA0;--pu-d:#5A4F7E;
+  --shadow:0 1px 2px rgba(58,46,88,.04);
+  --shadow-md:0 2px 8px rgba(58,46,88,.08);
+  --radius:10px;--radius-lg:14px;
+}
+html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;color:var(--text);background:var(--bg);min-height:100vh;-webkit-font-smoothing:antialiased}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#app{max-width:780px;margin:0 auto;padding:14px 14px 80px}
+
+/* TOP BAR */
+.top-bar{display:flex;align-items:center;gap:10px;padding:8px 0 14px;flex-wrap:wrap}
+.brand{font-size:18px;font-weight:600;display:flex;align-items:center;gap:6px;color:var(--text)}
+.brand .ti{color:var(--pu);font-size:20px}
+.spacer{flex:1}
+.icon-btn{padding:7px 11px;font-size:12px;font-weight:500;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);color:var(--text-soft);cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.icon-btn:hover{background:var(--lvl);border-color:var(--lv);color:var(--lvd)}
+.icon-btn .ti{font-size:14px}
+
+/* TABS */
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:14px}
+.tab{flex:1;padding:9px 8px;font-size:13px;font-weight:500;border-radius:7px;border:none;background:transparent;color:var(--text-soft);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--pu);color:#fff}
+.tab .ti{font-size:14px}
+
+/* FILTER ROW */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{padding:6px 12px;border-radius:18px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-soft);transition:all .15s}
+.chip:hover{border-color:var(--border-strong)}
+.chip.active{background:var(--pu);color:#fff;border-color:var(--pu)}
+
+.search-wrap{position:relative;flex:1;min-width:140px}
+.search-wrap .ti{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--text-mute);pointer-events:none}
+#search{width:100%;padding:8px 12px 8px 32px;font-size:13px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-family:inherit;color:var(--text)}
+#search:focus{outline:none;border-color:var(--pu)}
+
+/* SUMMARY */
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.sum-card .lbl{font-size:11px;color:var(--text-soft);margin-bottom:3px;font-weight:500}
+.sum-card .val{font-size:22px;font-weight:600;line-height:1.1}
+.val.urg{color:var(--rd)}.val.sn{color:#B07800}.val.ok{color:var(--mn)}
+
+/* STATS PAGE CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px}
+.stat-card .h{font-size:11px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:6px}
+.stat-card .v{font-size:26px;font-weight:600;line-height:1.1;margin-bottom:3px}
+.stat-card .s{font-size:12px;color:var(--text-mute)}
+
+.section-title{font-size:11px;font-weight:600;color:var(--text-soft);letter-spacing:.06em;text-transform:uppercase;margin:18px 0 8px;padding-left:2px;display:flex;align-items:center;gap:5px}
+.section-title .badge-count{background:var(--lvl);color:var(--lvd);padding:1px 7px;border-radius:8px;font-size:10px;font-weight:600}
+
+/* PROD CARD */
+.prod-list{display:flex;flex-direction:column;gap:8px}
+.prod-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:all .15s}
+.prod-card:hover{border-color:var(--border-strong)}
+.prod-card.expanded{border-color:var(--pu);box-shadow:var(--shadow-md)}
+.prod-header{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;user-select:none}
+.prod-left{display:flex;align-items:center;gap:10px;min-width:0}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cat-dot.sk{background:var(--pk)}.cat-dot.ca{background:var(--bl)}.cat-dot.mk{background:var(--lv)}
+.prod-info{min-width:0;flex:1}
+.prod-name{font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prod-meta{font-size:11px;color:var(--text-soft);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.right-stack{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.prio-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:11px;white-space:nowrap}
+.prio-badge.urg{background:var(--rdl);color:var(--rd);border:1px solid #F4C0D0}
+.prio-badge.sn{background:var(--aml);color:#8A5C00;border:1px solid var(--am)}
+.prio-badge.obs{background:var(--bll);color:var(--bld);border:1px solid var(--bl)}
+.prio-badge.ok{background:var(--mnl);color:var(--mnd);border:1px solid #A8DCC0}
+.stock-pill{font-size:10.5px;padding:3px 8px;border-radius:10px;background:var(--bg);color:var(--text-soft);white-space:nowrap;display:inline-flex;align-items:center;gap:3px;font-weight:500}
+.stock-pill.has{background:var(--mnl);color:var(--mnd)}
+.chevron{font-size:16px;color:var(--text-mute);transition:transform .2s}
+.prod-card.expanded .chevron{transform:rotate(180deg)}
+
+/* DETAIL */
+.prod-detail{padding:0 14px 14px;border-top:1px solid var(--border);display:none}
+.prod-card.expanded .prod-detail{display:block}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.det-block{background:var(--bg);border-radius:var(--radius);padding:10px 12px;border:1px solid var(--border)}
+.det-block .dl{font-size:11px;color:var(--text-soft);margin-bottom:4px;display:flex;align-items:center;gap:4px;font-weight:500}
+.det-block .dv{font-size:14px;font-weight:600;color:var(--text)}
+.det-block .dv.pred{color:var(--pu)}
+.det-block .dv.urg{color:var(--rd)}
+.det-block .dv.mn{color:var(--mn)}
+
+.form-section{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)}
+.form-section-title{font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;align-items:center;gap:4px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.form-group{display:flex;flex-direction:column;gap:3px}
+.form-group label{font-size:11px;color:var(--text-soft);font-weight:500}
+.form-group input{font-size:13px;padding:8px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-family:inherit;color:var(--text)}
+.form-group input:focus{outline:none;border-color:var(--pu)}
+.size-hint{font-size:10px;color:var(--text-mute);margin-top:1px;font-style:italic}
+
+.stock-row{margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.stock-row > label{font-size:12px;color:var(--text-soft);font-weight:500}
+.toggle-wrap{display:flex;gap:5px}
+.tog-btn{padding:5px 12px;font-size:12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--text-soft);display:inline-flex;align-items:center;gap:3px;font-family:inherit}
+.tog-btn.active-yes{background:var(--mnl);color:var(--mnd);border-color:#A8DCC0;font-weight:600}
+.tog-btn.active-no{background:var(--rdl);color:var(--rd);border-color:#F4C0D0;font-weight:600}
+.stock-qty{display:flex;align-items:center;gap:5px}
+.stock-qty label{font-size:12px;color:var(--text-soft)}
+.stock-qty input{width:56px;font-size:13px;padding:5px 6px;text-align:center;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text)}
+
+/* PROGRESS BAR */
+.bar-wrap{margin-top:14px}
+.bar-wrap .bl{font-size:11px;color:var(--text-soft);display:flex;justify-content:space-between;margin-bottom:5px;font-weight:500}
+.bar-bg{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s}
+
+/* BUTTONS */
+.action-bar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
+.btn{padding:8px 16px;font-size:13px;font-weight:600;border-radius:var(--radius);border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit;transition:all .15s}
+.btn-primary{background:var(--pu);color:#fff}
+.btn-primary:hover{background:var(--pu-d)}
+.btn-finish{background:var(--mn);color:#fff}
+.btn-finish:hover{background:#5DB489}
+.btn-ghost{background:var(--surface);color:var(--text-soft);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg)}
+.btn-danger{background:var(--surface);color:var(--rd);border:1px solid var(--rdl)}
+.btn-danger:hover{background:var(--rdl)}
+.btn .ti{font-size:14px}
+.saved-tag{font-size:12px;color:var(--mnd);display:none;align-items:center;gap:3px;font-weight:500}
+.saved-tag.show{display:inline-flex}
+
+/* HISTORY */
+.history-section{margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)}
+.history-empty{font-size:12px;color:var(--text-mute);font-style:italic;text-align:center;padding:14px}
+.hist-list{display:flex;flex-direction:column;gap:6px}
+.hist-item{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:9px 11px;background:var(--bg);border-radius:var(--radius);font-size:12px;border:1px solid var(--border)}
+.hist-icon{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--lvl);color:var(--lvd)}
+.hist-icon .ti{font-size:13px}
+.hist-main{min-width:0}
+.hist-main .hl{font-weight:600;color:var(--text);font-size:13px}
+.hist-main .hs{font-size:11px;color:var(--text-soft);margin-top:1px}
+.hist-stats{font-size:11px;color:var(--text-soft);text-align:right;white-space:nowrap}
+.hist-stats .v{font-weight:600;color:var(--text);font-size:12px}
+
+/* HISTORY PAGE */
+.history-page-list{display:flex;flex-direction:column;gap:8px}
+.hist-page-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.hist-page-card .cat-dot{width:8px;height:8px;border-radius:50%}
+.hist-page-card .nm{font-size:13.5px;font-weight:600;color:var(--text)}
+.hist-page-card .sub{font-size:11px;color:var(--text-soft);margin-top:2px}
+.hist-page-card .end{font-size:12px;text-align:right;color:var(--text-soft)}
+.hist-page-card .end .v{font-weight:600;color:var(--text);font-size:13px}
+
+/* STATS PAGE TABLES */
+.stat-tbl{width:100%;font-size:12px;border-collapse:collapse;background:var(--surface);border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border)}
+.stat-tbl th{background:var(--bg);color:var(--text-soft);text-transform:uppercase;font-size:10px;letter-spacing:.05em;font-weight:600;padding:9px 11px;text-align:left;border-bottom:1px solid var(--border)}
+.stat-tbl td{padding:9px 11px;border-bottom:1px solid var(--border);font-size:12.5px}
+.stat-tbl tr:last-child td{border-bottom:none}
+.stat-tbl tr:hover td{background:var(--bg)}
+.stat-tbl td.num{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.no-data{text-align:center;padding:30px;color:var(--text-mute);font-size:13px}
+
+/* MODAL */
+.modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(42,32,66,0.5);display:none;align-items:center;justify-content:center;z-index:99;padding:14px;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:var(--radius-lg);padding:18px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;border:1px solid var(--border-strong);box-shadow:0 10px 40px rgba(0,0,0,.15)}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:8px;color:var(--text)}
+.modal p{font-size:13px;color:var(--text-soft);margin-bottom:10px;line-height:1.5}
+.modal textarea{width:100%;height:140px;font-family:'Monaco','Menlo',monospace;font-size:11px;padding:10px;border-radius:var(--radius);border:1px solid var(--border);resize:vertical;color:var(--text);background:var(--bg)}
+.modal-form{display:flex;flex-direction:column;gap:10px}
+.modal-form label{font-size:12px;color:var(--text-soft);font-weight:500;display:block;margin-bottom:3px}
+.modal-form input{width:100%;font-size:13px;padding:9px 11px;border-radius:var(--radius);border:1px solid var(--border);font-family:inherit;background:var(--bg);color:var(--text)}
+.modal-form input:focus{outline:none;border-color:var(--pu)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-soft)}
+.empty-state .ti{font-size:38px;color:var(--text-mute);margin-bottom:8px}
+.empty-state .ttl{font-size:14px;font-weight:600;margin-bottom:4px;color:var(--text)}
+.empty-state .sub{font-size:12px;color:var(--text-mute)}
+
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:200;opacity:0;transition:all .25s;display:flex;align-items:center;gap:6px}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* SYNC STATUS */
+.sync-status{display:inline-flex;align-items:center;gap:5px;padding:7px 11px;font-size:12px;font-weight:500;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border);color:var(--text-soft);cursor:pointer;transition:all .15s}
+.sync-status:hover{border-color:var(--border-strong)}
+.sync-status .ti{font-size:14px}
+.sync-status.connected{background:var(--mnl);color:var(--mnd);border-color:#A8DCC0}
+.sync-status.error{background:var(--rdl);color:var(--rdd);border-color:#F4C0D0}
+.sync-status.syncing .ti-cloud{animation:spin 1.4s linear infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.setup-card{background:linear-gradient(135deg,var(--lvl),var(--pkl));border:1px solid var(--lv);border-radius:var(--radius-lg);padding:18px;margin-bottom:14px}
+.setup-card h3{font-size:15px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px;color:var(--text)}
+.setup-card p{font-size:13px;color:var(--text-soft);margin-bottom:12px;line-height:1.5}
+.setup-card .actions{display:flex;gap:8px;flex-wrap:wrap}
+.setup-step{font-size:12px;color:var(--text-soft);background:rgba(255,255,255,.6);padding:10px 12px;border-radius:var(--radius);margin-top:8px;line-height:1.6}
+.setup-step strong{color:var(--text)}
+.setup-step a{color:var(--pu);text-decoration:none;font-weight:600}
+.setup-step a:hover{text-decoration:underline}
+.setup-step code{background:var(--bg);padding:2px 6px;border-radius:4px;font-family:'Monaco','Menlo',monospace;font-size:11px;color:var(--pu-d);border:1px solid var(--border)}
+
+@media (max-width:560px){
+  #app{padding:10px 10px 80px}
+  .top-bar{gap:8px}
+  .brand{font-size:16px}
+  .summary-grid{grid-template-columns:repeat(2,1fr)}
+  .form-row,.detail-grid{grid-template-columns:1fr}
+  .tab{font-size:12px;padding:8px 4px;gap:3px}
+  .tab .ti{font-size:13px}
+  .prod-header{padding:11px 12px}
+  .prod-detail{padding:0 12px 12px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top-bar">
+    <div class="brand"><i class="ti ti-sparkles"></i> beauty tracker</div>
+    <div class="spacer"></div>
+    <button class="sync-status" id="syncStatus" onclick="openSyncSettings()">
+      <i class="ti ti-cloud-off"></i> <span id="syncLabel">configurar sync</span>
+    </button>
+    <button class="icon-btn" onclick="openExport()" title="exportar JSON"><i class="ti ti-download"></i></button>
+    <button class="icon-btn" onclick="openImport()" title="importar JSON"><i class="ti ti-upload"></i></button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="produtos" onclick="setTab('produtos')"><i class="ti ti-package"></i> produtos</button>
+    <button class="tab" data-tab="historico" onclick="setTab('historico')"><i class="ti ti-history"></i> histórico</button>
+    <button class="tab" data-tab="stats" onclick="setTab('stats')"><i class="ti ti-chart-bar"></i> estatísticas</button>
+  </div>
+
+  <div id="tab-produtos">
+    <div class="filter-row">
+      <button class="chip active" onclick="setFilter('all',this)">todos</button>
+      <button class="chip" onclick="setFilter('urg',this)">urgente</button>
+      <button class="chip" onclick="setFilter('sn',this)">em breve</button>
+      <button class="chip" onclick="setFilter('obs',this)">observar</button>
+      <button class="chip" onclick="setFilter('ok',this)">ok</button>
+      <button class="chip" onclick="setFilter('sk',this)">skincare</button>
+      <button class="chip" onclick="setFilter('ca',this)">cabelos</button>
+      <button class="chip" onclick="setFilter('mk',this)">make</button>
+      <div class="search-wrap">
+        <i class="ti ti-search"></i>
+        <input id="search" type="text" placeholder="buscar..." oninput="render()">
+      </div>
+    </div>
+    <div class="summary-grid" id="sumGrid"></div>
+    <div id="listArea"></div>
+  </div>
+
+  <div id="tab-historico" style="display:none">
+    <div id="histArea"></div>
+  </div>
+
+  <div id="tab-stats" style="display:none">
+    <div id="statsArea"></div>
+  </div>
+
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <h3 id="modalTitle">título</h3>
+      <p id="modalDesc"></p>
+      <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">cancelar</button>
+        <button class="btn btn-primary" id="modalAction" onclick="modalConfirm()">confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────────────────────────
+// PRODUCT CATALOG
+// rate = days per unit (computed from full historical cycles)
+// ──────────────────────────────────────────────────────────────
+const PRODUCTS = [
+  {id:'sab',n:'Sabonete facial',cat:'sk',rate:0.3504,sz:105,un:'g',ref:'Bioderma 105g / 525g'},
+  {id:'ton',n:'Tônico',cat:'sk',rate:0.5722,sz:120,un:'ml',ref:'Oceane 120ml'},
+  {id:'ser',n:'Sérum diário',cat:'sk',rate:0.9000,sz:100,un:'ml',ref:'Skin1004 100ml'},
+  {id:'crdia',n:'Creme dia',cat:'sk',rate:1.3250,sz:75,un:'ml',ref:'Skin1004 75ml'},
+  {id:'crnoi',n:'Creme noite',cat:'sk',rate:1.5383,sz:100,un:'ml',ref:'Avene 100ml'},
+  {id:'olhos',n:'Creme para olhos',cat:'sk',rate:4.4000,sz:30,un:'ml',ref:'AHC 30ml'},
+  {id:'fps',n:'Protetor solar',cat:'sk',rate:1.5750,sz:50,un:'ml',ref:'Skin1004 50ml'},
+  {id:'dema',n:'Óleo demaquilante',cat:'sk',rate:0.7444,sz:180,un:'ml',ref:'Hadalabo 180ml'},
+  {id:'lip',n:'Lip mask noite',cat:'sk',rate:10.000,sz:20,un:'g',ref:'Laneige 20g'},
+  {id:'anti',n:'Anti aging',cat:'sk',rate:12.000,sz:30,un:'g',ref:'Creamy 30g'},
+  {id:'esf',n:'Esfoliante facial',cat:'sk',rate:1.3000,sz:100,un:'g',ref:'Dermalogica 100g'},
+  {id:'ure',n:'Loção ureia',cat:'sk',rate:0.2825,sz:400,un:'ml',ref:'Isdin 400ml'},
+  {id:'bsp',n:'Body splash',cat:'sk',rate:0.7110,sz:200,un:'ml',ref:'Natura 200ml'},
+  {id:'deo',n:'Desodorante gel',cat:'sk',rate:0.4244,sz:45,un:'g',ref:'Secret 45g (~19d)'},
+  {id:'oleo_p',n:'Óleo pré-shampoo',cat:'ca',rate:1.0333,sz:110,un:'ml',ref:'Cadiveu 110ml'},
+  {id:'sh_dtx',n:'Shampoo detox',cat:'ca',rate:0.2978,sz:600,un:'ml',ref:'Kerasys 600ml'},
+  {id:'sh_hid',n:'Shampoo hidratante',cat:'ca',rate:0.1886,sz:400,un:'ml',ref:"L'Oréal 400ml"},
+  {id:'cond',n:'Condicionador',cat:'ca',rate:0.1491,sz:400,un:'ml',ref:"L'Oréal 400ml"},
+  {id:'mask',n:'Pré Poo + Máscara',cat:'ca',rate:0.2560,sz:250,un:'g',ref:"L'Oréal 250g"},
+  {id:'acid',n:'Acidificante',cat:'ca',rate:0.7826,sz:230,un:'g',ref:'Kpro 230g'},
+  {id:'leav',n:'Leave-in',cat:'ca',rate:1.0556,sz:90,un:'ml',ref:"L'Oréal 90ml"},
+  {id:'nser',n:'Night serum capilar',cat:'ca',rate:1.1200,sz:200,un:'ml',ref:'Inoar 200ml'},
+  {id:'oleo_d',n:'Óleo dia a dia capilar',cat:'ca',rate:0.4539,sz:100,un:'ml',ref:'Dove/Acquaflora 100ml'},
+  {id:'shsec',n:'Shampoo seco',cat:'ca',rate:3.2000,sz:150,un:'ml',ref:'Ricca 150ml'},
+  {id:'corr',n:'Corretivo',cat:'mk',rate:75.571,sz:7,un:'ml',ref:'MAC 7ml'},
+  {id:'po',n:'Pó translúcido',cat:'mk',rate:56.154,sz:6.5,un:'g',ref:'MAC 6,5g'},
+  {id:'fix',n:'Fixador de make',cat:'mk',rate:2.7800,sz:100,un:'ml',ref:'MAC 100ml'},
+];
+const PROD_BY_ID = Object.fromEntries(PRODUCTS.map(p=>[p.id,p]));
+
+// ──────────────────────────────────────────────────────────────
+// STATE & STORAGE
+// state = {
+//   <prodId>: {
+//     openDate, openSize, brand, price, inStock, stockQty,
+//     history: [ {opened, finished, size, durationDays, brand, price} ]
+//   }
+// }
+// ──────────────────────────────────────────────────────────────
+const KEY='beauty_tracker_v3';
+const SYNC_KEY='beauty_tracker_sync_v1';
+
+function loadState(){try{return JSON.parse(localStorage.getItem(KEY))||{};}catch(e){return {};}}
+function saveState(){localStorage.setItem(KEY,JSON.stringify(state));scheduleSyncUp();}
+let state = loadState();
+let filterMode='all';
+let currentTab='produtos';
+
+// ──────────────────────────────────────────────────────────────
+// GIST SYNC
+// syncConfig = { token, gistId, filename, lastSyncedAt }
+// ──────────────────────────────────────────────────────────────
+function loadSyncConfig(){try{return JSON.parse(localStorage.getItem(SYNC_KEY))||null;}catch(e){return null;}}
+function saveSyncConfig(c){if(c)localStorage.setItem(SYNC_KEY,JSON.stringify(c));else localStorage.removeItem(SYNC_KEY);}
+let syncConfig = loadSyncConfig();
+let syncTimer = null;
+let syncing = false;
+let syncErrorMsg = '';
+
+function updateSyncIndicator(){
+  const el = document.getElementById('syncStatus');
+  const lbl = document.getElementById('syncLabel');
+  if(!el) return;
+  el.classList.remove('connected','error','syncing');
+  if(syncing){
+    el.classList.add('syncing','connected');
+    el.innerHTML = '<i class="ti ti-cloud"></i> <span id="syncLabel">sincronizando…</span>';
+  } else if(syncErrorMsg){
+    el.classList.add('error');
+    el.innerHTML = '<i class="ti ti-cloud-x"></i> <span id="syncLabel">erro de sync</span>';
+  } else if(syncConfig && syncConfig.token && syncConfig.gistId){
+    el.classList.add('connected');
+    const ts = syncConfig.lastSyncedAt;
+    const lbl = ts ? 'sync: '+timeAgo(new Date(ts)) : 'conectado';
+    el.innerHTML = '<i class="ti ti-cloud-check"></i> <span id="syncLabel">'+lbl+'</span>';
+  } else {
+    el.innerHTML = '<i class="ti ti-cloud-off"></i> <span id="syncLabel">configurar sync</span>';
+  }
+}
+
+function timeAgo(d){
+  const s = Math.round((Date.now()-d.getTime())/1000);
+  if(s<60) return 'agora';
+  if(s<3600) return Math.floor(s/60)+'min atrás';
+  if(s<86400) return Math.floor(s/3600)+'h atrás';
+  return Math.floor(s/86400)+'d atrás';
+}
+
+async function gistApi(method, path, body){
+  const r = await fetch('https://api.github.com'+path, {
+    method,
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'Authorization': 'Bearer '+syncConfig.token,
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(!r.ok){
+    const txt = await r.text();
+    throw new Error('GitHub API '+r.status+': '+txt.slice(0,200));
+  }
+  return r.json();
+}
+
+async function syncDown(silent){
+  if(!syncConfig || !syncConfig.token || !syncConfig.gistId) return;
+  syncing = true; syncErrorMsg=''; updateSyncIndicator();
+  try{
+    const gist = await gistApi('GET', '/gists/'+syncConfig.gistId);
+    const file = gist.files[syncConfig.filename||'beauty-tracker.json'];
+    if(!file) throw new Error('Arquivo não encontrado no gist');
+    const remoteData = JSON.parse(file.content);
+    state = remoteData;
+    localStorage.setItem(KEY, JSON.stringify(state));
+    syncConfig.lastSyncedAt = Date.now();
+    saveSyncConfig(syncConfig);
+    syncing = false; updateSyncIndicator();
+    if(!silent) toast('dados sincronizados!');
+    render();
+  } catch(e){
+    syncing = false; syncErrorMsg = e.message; updateSyncIndicator();
+    if(!silent) toast('erro ao sincronizar');
+    console.error(e);
+  }
+}
+
+async function syncUp(){
+  if(!syncConfig || !syncConfig.token || !syncConfig.gistId) return;
+  syncing = true; syncErrorMsg=''; updateSyncIndicator();
+  try{
+    const filename = syncConfig.filename || 'beauty-tracker.json';
+    await gistApi('PATCH', '/gists/'+syncConfig.gistId, {
+      files: { [filename]: { content: JSON.stringify(state, null, 2) } }
+    });
+    syncConfig.lastSyncedAt = Date.now();
+    saveSyncConfig(syncConfig);
+    syncing = false; updateSyncIndicator();
+  } catch(e){
+    syncing = false; syncErrorMsg = e.message; updateSyncIndicator();
+    console.error(e);
+  }
+}
+
+function scheduleSyncUp(){
+  if(!syncConfig || !syncConfig.token || !syncConfig.gistId) return;
+  if(syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncUp, 2000); // debounce 2s
+}
+
+async function createNewGist(token, filename){
+  // Used during initial setup
+  const r = await fetch('https://api.github.com/gists', {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'Authorization': 'Bearer '+token,
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      description: 'Beauty Tracker — dados pessoais',
+      public: false,
+      files: { [filename]: { content: JSON.stringify(state, null, 2) } }
+    })
+  });
+  if(!r.ok){
+    const txt = await r.text();
+    throw new Error('GitHub API '+r.status+': '+txt.slice(0,200));
+  }
+  return r.json();
+}
+
+function openSyncSettings(){
+  const sc = syncConfig || {};
+  const isConnected = !!(sc.token && sc.gistId);
+  document.getElementById('modalTitle').innerHTML = '<i class="ti ti-cloud" style="color:var(--pu);font-size:18px;vertical-align:middle"></i> sincronização com GitHub Gist';
+  document.getElementById('modalDesc').innerHTML = isConnected
+    ? 'Os dados são salvos automaticamente num gist privado seu. Para usar em outro dispositivo, configure o sync lá com o mesmo token e ID do gist.'
+    : 'Salve seus dados num gist secreto no seu GitHub. Funciona em qualquer dispositivo com o mesmo token.';
+
+  let setupHtml = '';
+  if(!isConnected){
+    setupHtml = '<div class="setup-step">'+
+      '<strong>Passo a passo:</strong><br>'+
+      '1. Vá em <a href="https://github.com/settings/tokens/new?description=Beauty+Tracker&scopes=gist" target="_blank">github.com/settings/tokens/new</a><br>'+
+      '2. Em <strong>Note</strong>: "Beauty Tracker"<br>'+
+      '3. Em <strong>Expiration</strong>: "No expiration" (ou um período longo)<br>'+
+      '4. Em <strong>Scopes</strong>: marque só <code>gist</code><br>'+
+      '5. Clique em <strong>Generate token</strong> e copie o token<br>'+
+      '6. Cole abaixo. Marque "criar novo gist" se for o primeiro dispositivo.'+
+      '</div>';
+  }
+
+  document.getElementById('modalBody').innerHTML = setupHtml + '<div class="modal-form">'+
+    '<div><label>token do GitHub</label>'+
+    '<input type="password" id="cfgToken" placeholder="ghp_..." value="'+escHtml(sc.token||'')+'"></div>'+
+    '<div><label>ID do gist <span style="color:var(--text-mute);font-weight:400">(deixe vazio para criar um novo)</span></label>'+
+    '<input type="text" id="cfgGistId" placeholder="ex: a1b2c3d4..." value="'+escHtml(sc.gistId||'')+'"></div>'+
+    (isConnected ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><button class="btn btn-ghost" type="button" onclick="syncManualDown()"><i class=\'ti ti-cloud-download\'></i> baixar agora</button>'+
+      '<button class="btn btn-ghost" type="button" onclick="syncManualUp()"><i class=\'ti ti-cloud-upload\'></i> enviar agora</button>'+
+      '<button class="btn btn-danger" type="button" onclick="disconnectSync()"><i class=\'ti ti-cloud-off\'></i> desconectar</button></div>' : '')+
+    '</div>';
+
+  document.getElementById('modalAction').innerHTML = isConnected
+    ? '<i class="ti ti-device-floppy"></i> salvar'
+    : '<i class="ti ti-cloud-plus"></i> conectar';
+  modalMode = 'sync';
+  document.getElementById('modalBg').classList.add('show');
+}
+
+async function saveSyncSettings(){
+  const token = document.getElementById('cfgToken').value.trim();
+  const gistId = document.getElementById('cfgGistId').value.trim();
+  if(!token){ alert('Cole o token do GitHub'); return; }
+
+  syncConfig = syncConfig || {};
+  syncConfig.token = token;
+  syncConfig.filename = 'beauty-tracker.json';
+
+  if(gistId){
+    // Use existing gist
+    syncConfig.gistId = gistId;
+    saveSyncConfig(syncConfig);
+    closeModal();
+    toast('verificando gist…');
+    await syncDown();
+  } else {
+    // Create new gist
+    closeModal();
+    toast('criando gist…');
+    try{
+      const gist = await createNewGist(token, 'beauty-tracker.json');
+      syncConfig.gistId = gist.id;
+      syncConfig.lastSyncedAt = Date.now();
+      saveSyncConfig(syncConfig);
+      updateSyncIndicator();
+      toast('gist criado! id: '+gist.id.slice(0,8)+'…');
+      // Show the gist ID so user can copy to other devices
+      setTimeout(()=>{
+        document.getElementById('modalTitle').innerHTML = '<i class="ti ti-check" style="color:var(--mn);font-size:18px;vertical-align:middle"></i> gist criado!';
+        document.getElementById('modalDesc').innerHTML = 'Anote o <strong>ID do gist</strong> abaixo. Você vai precisar dele (junto com o mesmo token) para configurar o sync em outros dispositivos.';
+        document.getElementById('modalBody').innerHTML = '<div class="modal-form"><div><label>ID do gist (copie e guarde)</label><input type="text" id="newGistId" readonly value="'+gist.id+'"></div><p style="font-size:12px;color:var(--text-soft);margin-top:8px">Ver no GitHub: <a href="https://gist.github.com/'+gist.id+'" target="_blank" style="color:var(--pu)">gist.github.com/'+gist.id.slice(0,12)+'…</a></p></div>';
+        document.getElementById('modalAction').innerHTML = '<i class="ti ti-copy"></i> copiar ID';
+        modalMode = 'copyGistId';
+        document.getElementById('modalBg').classList.add('show');
+      }, 400);
+    } catch(e){
+      alert('Erro ao criar gist: '+e.message);
+      console.error(e);
+    }
+  }
+}
+
+async function syncManualDown(){ closeModal(); await syncDown(); }
+async function syncManualUp(){ closeModal(); await syncUp(); toast('enviado para o gist!'); }
+function disconnectSync(){
+  if(!confirm('Desconectar do GitHub Gist?\n(Os dados locais não serão apagados, mas pararão de sincronizar.)')) return;
+  syncConfig = null; saveSyncConfig(null);
+  closeModal(); updateSyncIndicator(); toast('desconectado');
+}
+
+// ──────────────────────────────────────────────────────────────
+// HELPERS
+// ──────────────────────────────────────────────────────────────
+const TODAY = (()=>{const d=new Date();d.setHours(0,0,0,0);return d;})();
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+function fmtDate(d){if(!d)return '—';const dt=(typeof d==='string')?new Date(d+'T00:00:00'):d;return dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function fmtDateShort(d){if(!d)return '—';const dt=(typeof d==='string')?new Date(d+'T00:00:00'):d;return dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});}
+function daysBetween(a,b){return Math.round((b-a)/86400000);}
+function fmtBRL(n){if(n==null||isNaN(n))return '—';return 'R$ '+n.toFixed(2).replace('.',',');}
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function escHtml(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function getEffectiveDur(p, s){
+  const sz = parseFloat(s.openSize) || p.sz;
+  return Math.round(sz * p.rate);
+}
+function getDaysRemaining(p, s){
+  if(!s.openDate) return null;
+  return getEffectiveDur(p, s) - daysBetween(new Date(s.openDate+'T00:00:00'), TODAY);
+}
+function getPredEnd(p, s){
+  if(!s.openDate) return null;
+  return addDays(new Date(s.openDate+'T00:00:00'), getEffectiveDur(p, s));
+}
+function getPrio(p, s){
+  const dr = getDaysRemaining(p, s);
+  if(dr===null) return 'obs';
+  if(dr<=0) return 'urg';
+  if(dr<=45) return 'sn';
+  if(dr<=100) return 'obs';
+  return 'ok';
+}
+function prioLabel(pr){return {urg:'urgente',sn:'em breve',obs:'observar',ok:'ok'}[pr];}
+function catLabel(c){return {sk:'skincare',ca:'cabelos',mk:'maquiagem'}[c];}
+
+// Personal duration stats from history
+function getPersonalStats(prodId){
+  const s = state[prodId] || {};
+  const h = (s.history||[]).filter(x=>x.durationDays>0);
+  if(!h.length) return null;
+  const durs = h.map(x=>x.durationDays);
+  const avg = durs.reduce((a,b)=>a+b,0)/durs.length;
+  const sorted = [...durs].sort((a,b)=>a-b);
+  const min = sorted[0], max = sorted[sorted.length-1];
+  return {n:h.length, avg:Math.round(avg), min, max};
+}
+
+// ──────────────────────────────────────────────────────────────
+// UI ACTIONS
+// ──────────────────────────────────────────────────────────────
+function setTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+  document.getElementById('tab-produtos').style.display = tab==='produtos'?'':'none';
+  document.getElementById('tab-historico').style.display = tab==='historico'?'':'none';
+  document.getElementById('tab-stats').style.display = tab==='stats'?'':'none';
+  render();
+}
+
+function setFilter(f, el){
+  filterMode = f;
+  document.querySelectorAll('#tab-produtos .chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function toggleCard(id){
+  const c=document.getElementById('card_'+id);
+  if(c) c.classList.toggle('expanded');
+}
+
+function setStock(id, val){
+  const y=document.getElementById('syes_'+id);
+  const n=document.getElementById('sno_'+id);
+  const qr=document.getElementById('sqtyrow_'+id);
+  if(y) y.className='tog-btn'+(val?' active-yes':'');
+  if(n) n.className='tog-btn'+(!val?' active-no':'');
+  if(qr) qr.style.display = val?'flex':'none';
+}
+
+function saveProduct(id){
+  const oi=document.getElementById('open_'+id);
+  const si=document.getElementById('size_'+id);
+  const br=document.getElementById('brand_'+id);
+  const pr=document.getElementById('price_'+id);
+  const sy=document.getElementById('syes_'+id);
+  const sq=document.getElementById('sqty_'+id);
+  if(!state[id]) state[id]={};
+  state[id].openDate = (oi&&oi.value)||null;
+  state[id].openSize = (si&&si.value)?parseFloat(si.value):null;
+  state[id].brand = (br&&br.value.trim())||null;
+  state[id].price = (pr&&pr.value)?parseFloat(pr.value):null;
+  state[id].inStock = sy ? sy.classList.contains('active-yes') : false;
+  state[id].stockQty = (sq && state[id].inStock) ? (parseInt(sq.value)||1) : 0;
+  saveState();
+  toast('produto salvo!');
+  render();
+}
+
+function finishProduct(id){
+  const s = state[id]||{};
+  if(!s.openDate){toast('Defina a data de abertura primeiro');return;}
+  if(!confirm('Marcar este produto como finalizado hoje?\nEle será movido para o histórico.')) return;
+  const p = PROD_BY_ID[id];
+  const opened = new Date(s.openDate+'T00:00:00');
+  const finished = todayISO();
+  const durationDays = daysBetween(opened, TODAY);
+  if(!state[id].history) state[id].history=[];
+  state[id].history.unshift({
+    opened: s.openDate,
+    finished,
+    size: parseFloat(s.openSize)||p.sz,
+    durationDays,
+    brand: s.brand||null,
+    price: parseFloat(s.price)||null
+  });
+  // Clear "open product" fields, but keep history & stock
+  state[id].openDate = null;
+  state[id].openSize = null;
+  state[id].brand = null;
+  state[id].price = null;
+  saveState();
+  toast('produto finalizado e registrado!');
+  render();
+}
+
+function deleteHistoryEntry(prodId, idx){
+  if(!confirm('Excluir este registro do histórico?')) return;
+  if(state[prodId]&&state[prodId].history){
+    state[prodId].history.splice(idx,1);
+    saveState();
+    render();
+  }
+}
+
+function clearProduct(id){
+  if(!confirm('Limpar dados do produto aberto?\n(O histórico será mantido)')) return;
+  if(state[id]){
+    state[id].openDate = null;
+    state[id].openSize = null;
+    state[id].brand = null;
+    state[id].price = null;
+    saveState();
+    render();
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// RENDER
+// ──────────────────────────────────────────────────────────────
+function getFiltered(){
+  const q = (document.getElementById('search')||{}).value||'';
+  return PRODUCTS.filter(p=>{
+    const s = state[p.id]||{};
+    const pr = getPrio(p, s);
+    const catOk = filterMode==='all'||filterMode===pr||filterMode===p.cat;
+    const srOk = !q || p.n.toLowerCase().includes(q.toLowerCase()) || p.ref.toLowerCase().includes(q.toLowerCase());
+    return catOk && srOk;
+  });
+}
+
+function renderSummary(){
+  const c={urg:0,sn:0,obs:0,ok:0};
+  PRODUCTS.forEach(p=>{c[getPrio(p, state[p.id]||{})]++;});
+  document.getElementById('sumGrid').innerHTML = `
+    <div class="sum-card"><div class="lbl">urgente</div><div class="val urg">${c.urg}</div></div>
+    <div class="sum-card"><div class="lbl">em breve</div><div class="val sn">${c.sn}</div></div>
+    <div class="sum-card"><div class="lbl">observar</div><div class="val">${c.obs}</div></div>
+    <div class="sum-card"><div class="lbl">ok</div><div class="val ok">${c.ok}</div></div>`;
+}
+
+function renderBar(rem, dur){
+  if(rem===null) return '';
+  const pct = Math.max(0,Math.min(100,Math.round(rem/dur*100)));
+  const col = pct<=20?'var(--rd)':pct<=50?'var(--am)':'var(--mn)';
+  const lbl = rem<=0 ? 'acabou' : rem+' dias restantes';
+  return `<div class="bar-wrap"><div class="bl"><span>${lbl}</span><span>${pct}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div></div>`;
+}
+
+function buildHistorySection(p, s){
+  const h = s.history||[];
+  if(!h.length) return `<div class="history-section"><div class="form-section-title"><i class="ti ti-history"></i> histórico</div><div class="history-empty">nenhum produto finalizado ainda</div></div>`;
+  const items = h.map((it,idx)=>{
+    const dur = it.durationDays;
+    const sz = it.size;
+    return `<div class="hist-item">
+      <div class="hist-icon"><i class="ti ti-circle-check"></i></div>
+      <div class="hist-main">
+        <div class="hl">${it.brand?escHtml(it.brand):p.ref} <span style="font-weight:400;color:var(--text-mute)">· ${sz}${p.un}</span></div>
+        <div class="hs">${fmtDateShort(it.opened)} → ${fmtDateShort(it.finished)} · <strong>${dur}d</strong>${it.price?` · ${fmtBRL(it.price)}`:''}</div>
+      </div>
+      <button class="icon-btn" style="padding:5px 8px" onclick="deleteHistoryEntry('${p.id}',${idx})" title="excluir"><i class="ti ti-trash"></i></button>
+    </div>`;
+  }).join('');
+  return `<div class="history-section"><div class="form-section-title"><i class="ti ti-history"></i> histórico (${h.length})</div><div class="hist-list">${items}</div></div>`;
+}
+
+function buildCard(p){
+  const s = state[p.id]||{};
+  const dr = getDaysRemaining(p, s);
+  const pr = getPrio(p, s);
+  const pe = getPredEnd(p, s);
+  const dur = getEffectiveDur(p, s);
+  const has = s.inStock===true;
+  const qty = parseInt(s.stockQty)||0;
+  const stockLabel = has ? (qty>1?`${qty} em estoque`:'1 em estoque') : '';
+  const predStr = pe ? fmtDate(pe) : (s.openDate?'calculando…':'—');
+  const remStr = dr===null ? '—' : (dr<=0?'acabou':dr+' dias');
+  const sizeUsed = parseFloat(s.openSize) || p.sz;
+  const stats = getPersonalStats(p.id);
+  const effRate = stats ? '~'+stats.avg+'d / '+p.sz+p.un+' (média sua)' : '~'+Math.round(p.rate*p.sz)+'d / '+p.sz+p.un;
+
+  return `<div class="prod-card" id="card_${p.id}">
+    <div class="prod-header" onclick="toggleCard('${p.id}')">
+      <div class="prod-left">
+        <span class="cat-dot ${p.cat}"></span>
+        <div class="prod-info">
+          <div class="prod-name">${p.n}</div>
+          <div class="prod-meta">${p.ref} · ${effRate}</div>
+        </div>
+      </div>
+      <div class="right-stack">
+        <span class="prio-badge ${pr}">${prioLabel(pr)}</span>
+        ${stockLabel?`<span class="stock-pill has"><i class="ti ti-package"></i>${stockLabel}</span>`:''}
+      </div>
+      <i class="ti ti-chevron-down chevron"></i>
+    </div>
+    <div class="prod-detail">
+      <div class="detail-grid">
+        <div class="det-block">
+          <div class="dl"><i class="ti ti-calendar-event"></i> abertura</div>
+          <div class="dv">${s.openDate?fmtDate(s.openDate):'—'}</div>
+        </div>
+        <div class="det-block">
+          <div class="dl"><i class="ti ti-clock-stop"></i> previsão fim</div>
+          <div class="dv pred">${predStr}</div>
+        </div>
+        <div class="det-block">
+          <div class="dl"><i class="ti ti-hourglass"></i> restante</div>
+          <div class="dv ${dr!==null&&dr<=0?'urg':''}">${remStr}</div>
+        </div>
+        <div class="det-block">
+          <div class="dl"><i class="ti ti-ruler"></i> duração estimada</div>
+          <div class="dv">${dur} dias / ${sizeUsed}${p.un}</div>
+        </div>
+      </div>
+      ${renderBar(dr, dur)}
+
+      <div class="form-section">
+        <div class="form-section-title"><i class="ti ti-package"></i> produto aberto</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label><i class="ti ti-calendar-plus"></i> data de abertura</label>
+            <input type="date" id="open_${p.id}" value="${s.openDate||''}" max="${todayISO()}">
+          </div>
+          <div class="form-group">
+            <label><i class="ti ti-ruler-measure"></i> tamanho (${p.un})</label>
+            <input type="number" id="size_${p.id}" value="${s.openSize||''}" placeholder="padrão: ${p.sz}" min="1" step="0.5">
+            <div class="size-hint">deixe vazio para usar o padrão</div>
+          </div>
+          <div class="form-group">
+            <label><i class="ti ti-bookmark"></i> marca/variante</label>
+            <input type="text" id="brand_${p.id}" value="${escHtml(s.brand||'')}" placeholder="ex: ${p.ref}">
+          </div>
+          <div class="form-group">
+            <label><i class="ti ti-cash"></i> preço (R$)</label>
+            <input type="number" id="price_${p.id}" value="${s.price||''}" placeholder="0,00" min="0" step="0.01">
+          </div>
+        </div>
+
+        <div class="stock-row">
+          <label>estoque em casa:</label>
+          <div class="toggle-wrap">
+            <button class="tog-btn ${has?'active-yes':''}" id="syes_${p.id}" onclick="setStock('${p.id}',true)"><i class="ti ti-check"></i> sim</button>
+            <button class="tog-btn ${!has&&s.inStock===false?'active-no':''}" id="sno_${p.id}" onclick="setStock('${p.id}',false)"><i class="ti ti-x"></i> não</button>
+          </div>
+          <div class="stock-qty" id="sqtyrow_${p.id}" style="display:${has?'flex':'none'}">
+            <label for="sqty_${p.id}">qtd:</label>
+            <input type="number" id="sqty_${p.id}" min="1" max="20" value="${qty||1}">
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" onclick="saveProduct('${p.id}')"><i class="ti ti-device-floppy"></i> salvar</button>
+          ${s.openDate?`<button class="btn btn-finish" onclick="finishProduct('${p.id}')"><i class="ti ti-circle-check"></i> finalizar</button>`:''}
+          ${s.openDate?`<button class="btn btn-danger" onclick="clearProduct('${p.id}')"><i class="ti ti-trash"></i> limpar</button>`:''}
+        </div>
+      </div>
+
+      ${buildHistorySection(p, s)}
+    </div>
+  </div>`;
+}
+
+function renderProdutos(){
+  const f = getFiltered();
+  renderSummary();
+  const area = document.getElementById('listArea');
+  if(f.length===0){
+    area.innerHTML = '<div class="empty-state"><i class="ti ti-search-off"></i><div class="ttl">nenhum produto encontrado</div><div class="sub">tente ajustar os filtros</div></div>';
+    return;
+  }
+  const prios=['urg','sn','obs','ok'];
+  const titles={urg:'🔴 urgente — comprar agora',sn:'🟡 em breve',obs:'🔵 observar',ok:'🟢 ok'};
+  const grouped={};
+  f.forEach(p=>{const pr=getPrio(p,state[p.id]||{});(grouped[pr]=grouped[pr]||[]).push(p);});
+  let html='';
+  prios.forEach(pr=>{
+    const items=grouped[pr];
+    if(!items||!items.length) return;
+    html += `<div class="section-title">${titles[pr]} <span class="badge-count">${items.length}</span></div><div class="prod-list">`;
+    items.forEach(p=>{html += buildCard(p);});
+    html += '</div>';
+  });
+  area.innerHTML = html;
+}
+
+function renderHistorico(){
+  // Flatten all history entries
+  const allEntries = [];
+  PRODUCTS.forEach(p=>{
+    const s = state[p.id]||{};
+    (s.history||[]).forEach((h,idx)=>{
+      allEntries.push({...h, prodId:p.id, prod:p, idx});
+    });
+  });
+  allEntries.sort((a,b)=>(b.finished||'').localeCompare(a.finished||''));
+
+  const area = document.getElementById('histArea');
+  if(allEntries.length===0){
+    area.innerHTML = '<div class="empty-state"><i class="ti ti-history"></i><div class="ttl">nenhum produto finalizado ainda</div><div class="sub">use o botão "finalizar" em cada produto para registrar</div></div>';
+    return;
+  }
+
+  // Group by month
+  const byMonth = {};
+  allEntries.forEach(e=>{
+    const ym = e.finished.slice(0,7);
+    (byMonth[ym]=byMonth[ym]||[]).push(e);
+  });
+
+  let html = `<div class="stat-grid">
+    <div class="stat-card"><div class="h">total finalizados</div><div class="v">${allEntries.length}</div><div class="s">produtos</div></div>
+    <div class="stat-card"><div class="h">total gasto</div><div class="v">${fmtBRL(allEntries.reduce((a,b)=>a+(b.price||0),0))}</div><div class="s">${allEntries.filter(e=>e.price).length} com preço registrado</div></div>
+  </div>`;
+
+  Object.keys(byMonth).sort().reverse().forEach(ym=>{
+    const dt = new Date(ym+'-01T00:00:00');
+    const lbl = dt.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    html += `<div class="section-title">${lbl} <span class="badge-count">${byMonth[ym].length}</span></div><div class="history-page-list">`;
+    byMonth[ym].forEach(e=>{
+      html += `<div class="hist-page-card">
+        <span class="cat-dot ${e.prod.cat}"></span>
+        <div>
+          <div class="nm">${e.prod.n}</div>
+          <div class="sub">${e.brand?escHtml(e.brand):e.prod.ref} · ${e.size}${e.prod.un} · aberto em ${fmtDateShort(e.opened)}</div>
+        </div>
+        <div class="end">
+          <div class="v">${e.durationDays}d</div>
+          <div>${e.price?fmtBRL(e.price):'—'}</div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  area.innerHTML = html;
+}
+
+function renderStats(){
+  // Collect all finished products
+  const allEntries = [];
+  PRODUCTS.forEach(p=>{
+    const s = state[p.id]||{};
+    (s.history||[]).forEach(h=>{ allEntries.push({...h, prod:p}); });
+  });
+
+  const area = document.getElementById('statsArea');
+  if(allEntries.length===0){
+    area.innerHTML = '<div class="empty-state"><i class="ti ti-chart-bar"></i><div class="ttl">sem dados ainda</div><div class="sub">finalize alguns produtos para ver estatísticas</div></div>';
+    return;
+  }
+
+  // Top-level stats
+  const totalGasto = allEntries.reduce((a,b)=>a+(b.price||0),0);
+  const comPreco = allEntries.filter(e=>e.price);
+  const mediaPreco = comPreco.length ? (totalGasto/comPreco.length) : 0;
+  const totalDias = allEntries.reduce((a,b)=>a+(b.durationDays||0),0);
+  const mediaDias = Math.round(totalDias/allEntries.length);
+
+  // Gasto por categoria
+  const byCat = {sk:0, ca:0, mk:0};
+  allEntries.forEach(e=>{ byCat[e.prod.cat] += (e.price||0); });
+
+  // Duração por produto
+  const byProd = {};
+  allEntries.forEach(e=>{
+    const k = e.prod.id;
+    if(!byProd[k]) byProd[k]={prod:e.prod, durs:[], prices:[], count:0};
+    byProd[k].durs.push(e.durationDays);
+    if(e.price) byProd[k].prices.push(e.price);
+    byProd[k].count++;
+  });
+  const prodStats = Object.values(byProd).map(b=>({
+    prod:b.prod,
+    count:b.count,
+    avgDur:Math.round(b.durs.reduce((a,c)=>a+c,0)/b.durs.length),
+    minDur:Math.min(...b.durs),
+    maxDur:Math.max(...b.durs),
+    avgPrice:b.prices.length?b.prices.reduce((a,c)=>a+c,0)/b.prices.length:null,
+    totalPrice:b.prices.reduce((a,c)=>a+c,0)
+  })).sort((a,b)=>b.count-a.count);
+
+  // Mais caros (custo por dia)
+  const custoPorDia = prodStats.filter(p=>p.avgPrice && p.avgDur).map(p=>({
+    ...p, cpd: p.avgPrice/p.avgDur
+  })).sort((a,b)=>b.cpd-a.cpd);
+
+  let html = `<div class="stat-grid">
+    <div class="stat-card"><div class="h">total gasto</div><div class="v">${fmtBRL(totalGasto)}</div><div class="s">${comPreco.length} produtos com preço</div></div>
+    <div class="stat-card"><div class="h">preço médio</div><div class="v">${fmtBRL(mediaPreco)}</div><div class="s">por produto</div></div>
+    <div class="stat-card"><div class="h">duração média</div><div class="v">${mediaDias}d</div><div class="s">geral, todos os produtos</div></div>
+    <div class="stat-card"><div class="h">total finalizados</div><div class="v">${allEntries.length}</div><div class="s">no histórico</div></div>
+  </div>`;
+
+  // By category
+  html += `<div class="section-title">gasto por categoria</div><table class="stat-tbl"><thead><tr><th>categoria</th><th class="num">total</th><th class="num">%</th></tr></thead><tbody>`;
+  ['sk','ca','mk'].forEach(c=>{
+    const v = byCat[c];
+    const pct = totalGasto>0 ? ((v/totalGasto)*100).toFixed(1):'0';
+    const icon = c==='sk'?'✨':c==='ca'?'💇':'💄';
+    html += `<tr><td>${icon} ${catLabel(c)}</td><td class="num">${fmtBRL(v)}</td><td class="num">${pct}%</td></tr>`;
+  });
+  html += `</tbody></table>`;
+
+  // Duração por produto
+  html += `<div class="section-title">duração por produto</div><table class="stat-tbl"><thead><tr><th>produto</th><th class="num">qtd</th><th class="num">média</th><th class="num">min/max</th></tr></thead><tbody>`;
+  prodStats.forEach(p=>{
+    html += `<tr><td><span class="cat-dot ${p.prod.cat}" style="display:inline-block;margin-right:6px"></span>${p.prod.n}</td><td class="num">${p.count}</td><td class="num">${p.avgDur}d</td><td class="num">${p.minDur}/${p.maxDur}d</td></tr>`;
+  });
+  html += `</tbody></table>`;
+
+  // Custo por produto
+  if(custoPorDia.length){
+    html += `<div class="section-title">custo por dia (menor → maior)</div><table class="stat-tbl"><thead><tr><th>produto</th><th class="num">preço médio</th><th class="num">custo/dia</th></tr></thead><tbody>`;
+    [...custoPorDia].sort((a,b)=>a.cpd-b.cpd).forEach(p=>{
+      html += `<tr><td><span class="cat-dot ${p.prod.cat}" style="display:inline-block;margin-right:6px"></span>${p.prod.n}</td><td class="num">${fmtBRL(p.avgPrice)}</td><td class="num">${fmtBRL(p.cpd)}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+
+    // Total gasto por produto
+    const totalProd = [...prodStats].filter(p=>p.totalPrice>0).sort((a,b)=>b.totalPrice-a.totalPrice);
+    if(totalProd.length){
+      html += `<div class="section-title">total gasto por produto</div><table class="stat-tbl"><thead><tr><th>produto</th><th class="num">qtd</th><th class="num">total</th></tr></thead><tbody>`;
+      totalProd.forEach(p=>{
+        html += `<tr><td><span class="cat-dot ${p.prod.cat}" style="display:inline-block;margin-right:6px"></span>${p.prod.n}</td><td class="num">${p.count}</td><td class="num">${fmtBRL(p.totalPrice)}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+    }
+  }
+
+  area.innerHTML = html;
+}
+
+function render(){
+  if(currentTab==='produtos') renderProdutos();
+  else if(currentTab==='historico') renderHistorico();
+  else if(currentTab==='stats') renderStats();
+}
+
+// ──────────────────────────────────────────────────────────────
+// EXPORT / IMPORT
+// ──────────────────────────────────────────────────────────────
+let modalMode='export';
+function openExport(){
+  modalMode='export';
+  document.getElementById('modalTitle').textContent='exportar dados';
+  document.getElementById('modalDesc').innerHTML='Copie este texto e salve em algum lugar seguro (Google Keep, Drive, email). Para usar no celular ou em outro navegador, cole no campo <strong>importar</strong>.';
+  document.getElementById('modalBody').innerHTML = `<textarea id="modalText" readonly>${JSON.stringify(state, null, 2)}</textarea>`;
+  document.getElementById('modalAction').innerHTML='<i class="ti ti-copy"></i> copiar';
+  document.getElementById('modalBg').classList.add('show');
+}
+function openImport(){
+  modalMode='import';
+  document.getElementById('modalTitle').textContent='importar dados';
+  document.getElementById('modalDesc').innerHTML='Cole aqui o JSON exportado de outro dispositivo. <strong style="color:var(--rd)">Isso substitui todos os dados atuais.</strong>';
+  document.getElementById('modalBody').innerHTML = `<textarea id="modalText"></textarea>`;
+  document.getElementById('modalAction').innerHTML='<i class="ti ti-upload"></i> importar';
+  document.getElementById('modalBg').classList.add('show');
+}
+function closeModal(){document.getElementById('modalBg').classList.remove('show');}
+function modalConfirm(){
+  if(modalMode==='sync'){
+    saveSyncSettings();
+    return;
+  }
+  if(modalMode==='copyGistId'){
+    const inp = document.getElementById('newGistId');
+    if(inp){
+      inp.select();
+      try{
+        document.execCommand('copy');
+        if(navigator.clipboard) navigator.clipboard.writeText(inp.value).catch(()=>{});
+        toast('ID copiado!');
+        setTimeout(closeModal, 600);
+      }catch(e){
+        alert('Selecione o texto e copie manualmente.');
+      }
+    }
+    return;
+  }
+  const txt = document.getElementById('modalText');
+  if(modalMode==='export'){
+    txt.select();
+    try{
+      document.execCommand('copy');
+      if(navigator.clipboard) navigator.clipboard.writeText(txt.value).catch(()=>{});
+      toast('copiado!');
+      setTimeout(closeModal, 600);
+    }catch(e){
+      alert('Selecione o texto e copie manualmente (Ctrl+C ou Cmd+C).');
+    }
+  } else {
+    try{
+      const data = JSON.parse(txt.value);
+      if(typeof data!=='object'||data===null) throw new Error();
+      state = data;
+      saveState();
+      closeModal();
+      render();
+      toast('dados importados!');
+    }catch(e){
+      alert('JSON inválido. Verifique o texto colado.');
+    }
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// TOAST
+// ──────────────────────────────────────────────────────────────
+let toastTimer = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.innerHTML = `<i class="ti ti-check"></i> ${msg}`;
+  t.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+// Close modal on backdrop click
+document.getElementById('modalBg').addEventListener('click', e=>{
+  if(e.target.id==='modalBg') closeModal();
+});
+
+// Initial render & sync
+render();
+updateSyncIndicator();
+
+// If sync is configured, pull latest data on load (silently)
+if(syncConfig && syncConfig.token && syncConfig.gistId){
+  syncDown(true);
+}
+
+// Update the "x min ago" label every minute
+setInterval(updateSyncIndicator, 60000);
+</script>
+</body>
+</html>
