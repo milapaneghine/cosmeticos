@@ -130,6 +130,12 @@ body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-i
 .bar-bg{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
 .bar-fill{height:100%;border-radius:3px;transition:width .4s}
 
+/* SOURCE TAG (catalog vs personal data) */
+.src-tag{display:inline-flex;align-items:center;gap:3px;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:8px;margin-left:5px;letter-spacing:.02em;text-transform:lowercase;vertical-align:middle}
+.src-tag .ti{font-size:11px}
+.src-tag.personal{background:var(--mnl);color:var(--mnd);border:1px solid #A8DCC0}
+.src-tag.mixed{background:var(--aml);color:var(--amd);border:1px solid var(--am)}
+
 /* BUTTONS */
 .action-bar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
 .btn{padding:8px 16px;font-size:13px;font-weight:600;border-radius:var(--radius);border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:inherit;transition:all .15s}
@@ -601,7 +607,8 @@ function escHtml(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;'
 
 function getEffectiveDur(p, s){
   const sz = parseFloat(s.openSize) || p.sz;
-  return Math.round(sz * p.rate);
+  const {rate} = getEffectiveRate(p, s);
+  return Math.round(sz * rate);
 }
 function getDaysRemaining(p, s){
   if(!s.openDate) return null;
@@ -611,11 +618,19 @@ function getPredEnd(p, s){
   if(!s.openDate) return null;
   return addDays(new Date(s.openDate+'T00:00:00'), getEffectiveDur(p, s));
 }
+// Priority logic — considers stock at home: if stock > 0, product cannot be "urgent"
 function getPrio(p, s){
   const dr = getDaysRemaining(p, s);
+  const hasStock = s.inStock === true && (parseInt(s.stockQty)||0) > 0;
   if(dr===null) return 'obs';
-  if(dr<=0) return 'urg';
-  if(dr<=45) return 'sn';
+  // If product is "overdue" but you have stock at home, it's just "soon"
+  if(dr<=0){
+    return hasStock ? 'sn' : 'urg';
+  }
+  if(dr<=45){
+    // 1+ in stock → push it down a level
+    return hasStock ? 'obs' : 'sn';
+  }
   if(dr<=100) return 'obs';
   return 'ok';
 }
@@ -623,15 +638,61 @@ function prioLabel(pr){return {urg:'urgente',sn:'em breve',obs:'observar',ok:'ok
 function catLabel(c){return {sk:'skincare',ca:'cabelos',mk:'maquiagem'}[c];}
 
 // Personal duration stats from history
+// Uses weighted average favoring recent cycles (more recent = more weight).
+// Weights: most recent = N, second = N-1, ..., oldest = 1.
 function getPersonalStats(prodId){
   const s = state[prodId] || {};
   const h = (s.history||[]).filter(x=>x.durationDays>0);
   if(!h.length) return null;
-  const durs = h.map(x=>x.durationDays);
-  const avg = durs.reduce((a,b)=>a+b,0)/durs.length;
-  const sorted = [...durs].sort((a,b)=>a-b);
-  const min = sorted[0], max = sorted[sorted.length-1];
-  return {n:h.length, avg:Math.round(avg), min, max};
+  // history is unshift'd (most recent first). Reverse for chronological order.
+  // We use last 5 cycles max so older data doesn't dominate.
+  const recent = h.slice(0,5);  // already most-recent first
+  const durs = recent.map(x=>x.durationDays);
+  // weighted: first item (most recent) gets highest weight
+  const n = durs.length;
+  let weightSum = 0, valueSum = 0;
+  durs.forEach((d, i)=>{
+    const w = n - i; // recent gets n, then n-1, ...
+    weightSum += w;
+    valueSum += d * w;
+  });
+  const weighted = valueSum / weightSum;
+  // Also keep simple stats for display
+  const sorted = [...h.map(x=>x.durationDays)].sort((a,b)=>a-b);
+  const allDurs = h.map(x=>x.durationDays);
+  const simpleAvg = allDurs.reduce((a,b)=>a+b,0)/allDurs.length;
+  // Also track the size each cycle had (taxas pessoais per unit)
+  // Personal rate per unit = avg(duration/size) for recent cycles
+  const ratesRecent = recent.map(x=>x.durationDays/(x.size||1)).filter(r=>r>0&&isFinite(r));
+  let personalRate = null;
+  if(ratesRecent.length){
+    let rws=0, rvs=0;
+    ratesRecent.forEach((r,i)=>{const w=ratesRecent.length-i; rws+=w; rvs+=r*w;});
+    personalRate = rvs/rws;
+  }
+  return {
+    n: h.length,
+    nRecent: recent.length,
+    avg: Math.round(weighted),
+    simpleAvg: Math.round(simpleAvg),
+    min: sorted[0],
+    max: sorted[sorted.length-1],
+    personalRate  // dias por unidade (g/ml), peso recente
+  };
+}
+
+// Effective rate to use for predictions: personal if available, else catalog
+// Returns {rate, source} where source = 'personal' or 'catalog'
+function getEffectiveRate(p, s){
+  const stats = getPersonalStats(p.id);
+  if(stats && stats.personalRate && stats.nRecent >= 2){
+    return {rate: stats.personalRate, source: 'personal', n: stats.nRecent};
+  }
+  // Single cycle: average catalog + personal so we don't swing too hard
+  if(stats && stats.personalRate && stats.nRecent === 1){
+    return {rate: (p.rate + stats.personalRate)/2, source: 'mixed', n: 1};
+  }
+  return {rate: p.rate, source: 'catalog', n: 0};
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -760,9 +821,14 @@ function renderSummary(){
 
 function renderBar(rem, dur){
   if(rem===null) return '';
+  // Negative remaining = overdue. Show a special state.
+  if(rem <= 0){
+    const overdue = Math.abs(rem);
+    return `<div class="bar-wrap"><div class="bl"><span>passou ${overdue}d da previsão</span><span>—</span></div><div class="bar-bg bar-overdue"><div class="bar-fill" style="width:100%;background:repeating-linear-gradient(45deg,var(--am),var(--am) 6px,#F0BA5C 6px,#F0BA5C 12px)"></div></div></div>`;
+  }
   const pct = Math.max(0,Math.min(100,Math.round(rem/dur*100)));
   const col = pct<=20?'var(--rd)':pct<=50?'var(--am)':'var(--mn)';
-  const lbl = rem<=0 ? 'acabou' : rem+' dias restantes';
+  const lbl = rem+' dias restantes';
   return `<div class="bar-wrap"><div class="bl"><span>${lbl}</span><span>${pct}%</span></div><div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div></div>`;
 }
 
@@ -794,10 +860,17 @@ function buildCard(p){
   const qty = parseInt(s.stockQty)||0;
   const stockLabel = has ? (qty>1?`${qty} em estoque`:'1 em estoque') : '';
   const predStr = pe ? fmtDate(pe) : (s.openDate?'calculando…':'—');
-  const remStr = dr===null ? '—' : (dr<=0?'acabou':dr+' dias');
+  const remStr = dr===null ? '—' : (dr<=0?`passou ${Math.abs(dr)}d`:dr+' dias');
   const sizeUsed = parseFloat(s.openSize) || p.sz;
-  const stats = getPersonalStats(p.id);
-  const effRate = stats ? '~'+stats.avg+'d / '+p.sz+p.un+' (média sua)' : '~'+Math.round(p.rate*p.sz)+'d / '+p.sz+p.un;
+  const eff = getEffectiveRate(p, s);
+  const catalogDur = Math.round(p.rate * p.sz);
+  const yourDur = Math.round(eff.rate * p.sz);
+  const sourceTag = eff.source === 'personal'
+    ? `<span class="src-tag personal" title="baseado nos seus ${eff.n} últimos ciclos"><i class="ti ti-user-check"></i> seus dados</span>`
+    : eff.source === 'mixed'
+      ? `<span class="src-tag mixed" title="média entre seu 1º ciclo e estimativa inicial"><i class="ti ti-arrows-shuffle"></i> ajustado</span>`
+      : '';
+  const effRateLbl = `~${yourDur}d / ${p.sz}${p.un}${eff.source==='personal'?' (sua média)':''}`;
 
   return `<div class="prod-card" id="card_${p.id}">
     <div class="prod-header" onclick="toggleCard('${p.id}')">
@@ -805,7 +878,7 @@ function buildCard(p){
         <span class="cat-dot ${p.cat}"></span>
         <div class="prod-info">
           <div class="prod-name">${p.n}</div>
-          <div class="prod-meta">${p.ref} · ${effRate}</div>
+          <div class="prod-meta">${p.ref} · ${effRateLbl}</div>
         </div>
       </div>
       <div class="right-stack">
@@ -825,11 +898,11 @@ function buildCard(p){
           <div class="dv pred">${predStr}</div>
         </div>
         <div class="det-block">
-          <div class="dl"><i class="ti ti-hourglass"></i> restante</div>
+          <div class="dl"><i class="ti ti-hourglass"></i> ${dr!==null&&dr<=0?'atraso':'restante'}</div>
           <div class="dv ${dr!==null&&dr<=0?'urg':''}">${remStr}</div>
         </div>
         <div class="det-block">
-          <div class="dl"><i class="ti ti-ruler"></i> duração estimada</div>
+          <div class="dl"><i class="ti ti-ruler"></i> duração estimada ${sourceTag}</div>
           <div class="dv">${dur} dias / ${sizeUsed}${p.un}</div>
         </div>
       </div>
