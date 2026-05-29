@@ -304,6 +304,7 @@ const PRODUCTS = [
   {id:'fps',n:'Protetor solar',cat:'sk',rate:1.5750,sz:50,un:'ml',ref:'Skin1004 50ml'},
   {id:'dema',n:'Óleo demaquilante',cat:'sk',rate:0.7444,sz:180,un:'ml',ref:'Hadalabo 180ml'},
   {id:'lip',n:'Lip mask noite',cat:'sk',rate:10.000,sz:20,un:'g',ref:'Laneige 20g'},
+  {id:'lipb',n:'Hidratante labial',cat:'sk',rate:10.000,sz:20,un:'g',ref:'Carmex / Nivea'},
   {id:'anti',n:'Anti aging',cat:'sk',rate:12.000,sz:30,un:'g',ref:'Creamy 30g'},
   {id:'esf',n:'Esfoliante facial',cat:'sk',rate:1.3000,sz:100,un:'g',ref:'Dermalogica 100g'},
   {id:'ure',n:'Loção ureia',cat:'sk',rate:0.2825,sz:400,un:'ml',ref:'Isdin 400ml'},
@@ -313,7 +314,8 @@ const PRODUCTS = [
   {id:'sh_dtx',n:'Shampoo detox',cat:'ca',rate:0.2978,sz:600,un:'ml',ref:'Kerasys 600ml'},
   {id:'sh_hid',n:'Shampoo hidratante',cat:'ca',rate:0.1886,sz:400,un:'ml',ref:"L'Oréal 400ml"},
   {id:'cond',n:'Condicionador',cat:'ca',rate:0.1491,sz:400,un:'ml',ref:"L'Oréal 400ml"},
-  {id:'mask',n:'Pré Poo + Máscara',cat:'ca',rate:0.2560,sz:250,un:'g',ref:"L'Oréal 250g"},
+  {id:'prepoo',n:'Pré poo creme',cat:'ca',rate:0.2560,sz:250,un:'g',ref:"L'Oréal 250g"},
+  {id:'mask',n:'Máscara capilar',cat:'ca',rate:0.2560,sz:250,un:'g',ref:"L'Oréal 250g"},
   {id:'acid',n:'Acidificante',cat:'ca',rate:0.7826,sz:230,un:'g',ref:'Kpro 230g'},
   {id:'leav',n:'Leave-in',cat:'ca',rate:1.0556,sz:90,un:'ml',ref:"L'Oréal 90ml"},
   {id:'nser',n:'Night serum capilar',cat:'ca',rate:1.1200,sz:200,un:'ml',ref:'Inoar 200ml'},
@@ -339,7 +341,34 @@ const SYNC_KEY='beauty_tracker_sync_v1';
 
 function loadState(){try{return JSON.parse(localStorage.getItem(KEY))||{};}catch(e){return {};}}
 function saveState(){localStorage.setItem(KEY,JSON.stringify(state));scheduleSyncUp();}
-let state = loadState();
+
+// Migration: split old combined 'mask' (Pré Poo + Máscara) into 'prepoo' and 'mask'
+function migrateState(s){
+  if(!s) return s;
+  // Old 'mask' had both pre-poo and mask combined. Move it to 'prepoo' by default
+  // so the user can continue tracking that product, since the new 'mask' is separate.
+  // Only migrate if there's no prepoo yet but there's old combined data.
+  if(s.mask && !s._migratedV4){
+    // Check if old data had history mentioning "pré poo" / brand prebond
+    // Just move history items individually based on intent isn't possible — we move all to prepoo
+    // since the original product they were tracking was the combo. User can split future entries.
+    if(!s.prepoo) s.prepoo = {};
+    // Move all data from old 'mask' to 'prepoo' (the new 'mask' = Máscara starts fresh)
+    s.prepoo.openDate = s.mask.openDate || s.prepoo.openDate;
+    s.prepoo.openSize = s.mask.openSize || s.prepoo.openSize;
+    s.prepoo.brand    = s.mask.brand    || s.prepoo.brand;
+    s.prepoo.price    = s.mask.price    || s.prepoo.price;
+    s.prepoo.inStock  = s.mask.inStock != null ? s.mask.inStock : s.prepoo.inStock;
+    s.prepoo.stockQty = s.mask.stockQty || s.prepoo.stockQty;
+    s.prepoo.history  = (s.mask.history||[]).concat(s.prepoo.history||[]);
+    delete s.mask;            // clear old combined entry
+    s._migratedV4 = true;     // mark so we don't migrate again
+    localStorage.setItem(KEY, JSON.stringify(s));
+  }
+  return s;
+}
+
+let state = migrateState(loadState());
 let filterMode='all';
 let currentTab='produtos';
 
@@ -409,7 +438,7 @@ async function syncDown(silent){
     const file = gist.files[syncConfig.filename||'beauty-tracker.json'];
     if(!file) throw new Error('Arquivo não encontrado no gist');
     const remoteData = JSON.parse(file.content);
-    state = remoteData;
+    state = migrateState(remoteData);
     localStorage.setItem(KEY, JSON.stringify(state));
     syncConfig.lastSyncedAt = Date.now();
     saveSyncConfig(syncConfig);
@@ -1084,7 +1113,7 @@ function modalConfirm(){
     try{
       const data = JSON.parse(txt.value);
       if(typeof data!=='object'||data===null) throw new Error();
-      state = data;
+      state = migrateState(data);
       saveState();
       closeModal();
       render();
