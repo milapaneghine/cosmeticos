@@ -302,10 +302,12 @@ body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-i
 // ──────────────────────────────────────────────────────────────
 const PRODUCTS = [
   {id:'sab',n:'Sabonete facial',cat:'sk',rate:0.3504,sz:105,un:'g',ref:'Bioderma 105g / 525g'},
+  {id:'sabo',n:'Sabonete para olhos',cat:'sk',rate:0.3504,sz:180,un:'ml',ref:'180ml padrão'},
   {id:'ton',n:'Tônico',cat:'sk',rate:0.5722,sz:120,un:'ml',ref:'Oceane 120ml'},
   {id:'ser',n:'Sérum diário',cat:'sk',rate:0.9000,sz:100,un:'ml',ref:'Skin1004 100ml'},
   {id:'crdia',n:'Creme dia',cat:'sk',rate:1.3250,sz:75,un:'ml',ref:'Skin1004 75ml'},
   {id:'crnoi',n:'Creme noite',cat:'sk',rate:1.5383,sz:100,un:'ml',ref:'Avene 100ml'},
+  {id:'resor',n:'Resorcina',cat:'sk',rate:1.3250,sz:30,un:'g',ref:'30g gel creme'},
   {id:'olhos',n:'Creme para olhos',cat:'sk',rate:4.4000,sz:30,un:'ml',ref:'AHC 30ml'},
   {id:'fps',n:'Protetor solar',cat:'sk',rate:1.5750,sz:50,un:'ml',ref:'Skin1004 50ml'},
   {id:'dema',n:'Óleo demaquilante',cat:'sk',rate:0.7444,sz:180,un:'ml',ref:'Hadalabo 180ml'},
@@ -619,20 +621,24 @@ function getPredEnd(p, s){
   if(!s.openDate) return null;
   return addDays(new Date(s.openDate+'T00:00:00'), getEffectiveDur(p, s));
 }
-// Priority logic — considers stock at home: if stock > 0, product cannot be "urgent"
+// Priority logic:
+// • Has stock (1+) at home → always 'ok' (no need to buy)
+// • No stock: uses % of estimated duration
+//     - overdue (rem ≤ 0)  → urgente
+//     - rem ≤ 40% of dur   → em breve
+//     - rem ≤ 60% of dur   → observar
+//     - rem >  60% of dur  → ok
+// • No open product registered → observar
 function getPrio(p, s){
-  const dr = getDaysRemaining(p, s);
   const hasStock = s.inStock === true && (parseInt(s.stockQty)||0) > 0;
+  if(hasStock) return 'ok';
+  const dr = getDaysRemaining(p, s);
   if(dr===null) return 'obs';
-  // If product is "overdue" but you have stock at home, it's just "soon"
-  if(dr<=0){
-    return hasStock ? 'sn' : 'urg';
-  }
-  if(dr<=45){
-    // 1+ in stock → push it down a level
-    return hasStock ? 'obs' : 'sn';
-  }
-  if(dr<=100) return 'obs';
+  if(dr<=0) return 'urg';
+  const dur = getEffectiveDur(p, s);
+  const pct = dr / dur;
+  if(pct <= 0.40) return 'sn';
+  if(pct <= 0.60) return 'obs';
   return 'ok';
 }
 function prioLabel(pr){return {urg:'urgente',sn:'em breve',obs:'observar',ok:'ok'}[pr];}
