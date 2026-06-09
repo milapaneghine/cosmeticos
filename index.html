@@ -135,6 +135,19 @@ body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-i
 .src-tag .ti{font-size:11px}
 .src-tag.personal{background:var(--mnl);color:var(--mnd);border:1px solid #A8DCC0}
 .src-tag.mixed{background:var(--aml);color:var(--amd);border:1px solid var(--am)}
+.src-tag.none{background:var(--bll);color:var(--bld);border:1px solid var(--bl)}
+
+/* PRODUCT ACTIONS (add/removed) */
+.product-actions{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.product-actions .btn-primary{padding:8px 14px;font-size:13px}
+
+/* CUSTOM PRODUCT TAG */
+.custom-tag{display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--lvl);color:var(--lvd);border:1px solid var(--lv);margin-left:5px;text-transform:uppercase;letter-spacing:.04em;vertical-align:middle}
+.prod-card.custom{border-left:3px solid var(--lv)}
+
+/* SELECT styling */
+select{font-family:inherit;color:var(--text)}
+select:focus{outline:none;border-color:var(--pu)}
 
 /* BUTTONS */
 .action-bar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
@@ -254,6 +267,10 @@ body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-i
   </div>
 
   <div id="tab-produtos">
+    <div class="product-actions">
+      <button class="btn btn-primary" onclick="openAddProduct()"><i class="ti ti-plus"></i> adicionar produto</button>
+      <button class="icon-btn" onclick="openRemovedProducts()"><i class="ti ti-archive"></i> removidos</button>
+    </div>
     <div class="filter-row">
       <button class="chip active" onclick="setFilter('all',this)">todos</button>
       <button class="chip" onclick="setFilter('urg',this)">urgente</button>
@@ -334,7 +351,28 @@ const PRODUCTS = [
   {id:'po',n:'Pó translúcido',cat:'mk',rate:56.154,sz:6.5,un:'g',ref:'MAC 6,5g'},
   {id:'fix',n:'Fixador de make',cat:'mk',rate:2.7800,sz:100,un:'ml',ref:'MAC 100ml'},
 ];
-const PROD_BY_ID = Object.fromEntries(PRODUCTS.map(p=>[p.id,p]));
+
+// ──────────────────────────────────────────────────────────────
+// CUSTOM PRODUCTS (added by user)
+// state._custom = { <prodId>: {n, cat, sz, un, ref}, ... }
+// state._removed = { <prodId>: true }  (hidden from active list, history kept)
+// Custom products start WITHOUT a rate — calculated from finished cycles only.
+// ──────────────────────────────────────────────────────────────
+function getCustomProducts(){
+  const cs = (state._custom)||{};
+  return Object.entries(cs).map(([id, p])=>({id, ...p, _custom:true}));
+}
+function getAllProducts(){
+  return PRODUCTS.concat(getCustomProducts());
+}
+function getActiveProducts(){
+  // Hide products marked as removed by user
+  const rm = state._removed||{};
+  return getAllProducts().filter(p=>!rm[p.id]);
+}
+function getProductById(id){
+  return PRODUCTS.find(p=>p.id===id) || (state._custom&&state._custom[id] ? {id, ...state._custom[id], _custom:true} : null);
+}
 
 // ──────────────────────────────────────────────────────────────
 // STATE & STORAGE
@@ -538,6 +576,7 @@ function openSyncSettings(){
       '<button class="btn btn-danger" type="button" onclick="disconnectSync()"><i class=\'ti ti-cloud-off\'></i> desconectar</button></div>' : '')+
     '</div>';
 
+  document.getElementById('modalAction').style.display = '';
   document.getElementById('modalAction').innerHTML = isConnected
     ? '<i class="ti ti-device-floppy"></i> salvar'
     : '<i class="ti ti-cloud-plus"></i> conectar';
@@ -611,15 +650,20 @@ function escHtml(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;'
 function getEffectiveDur(p, s){
   const sz = parseFloat(s.openSize) || p.sz;
   const {rate} = getEffectiveRate(p, s);
+  if(!rate || !sz) return null; // can't estimate
   return Math.round(sz * rate);
 }
 function getDaysRemaining(p, s){
   if(!s.openDate) return null;
-  return getEffectiveDur(p, s) - daysBetween(new Date(s.openDate+'T00:00:00'), TODAY);
+  const dur = getEffectiveDur(p, s);
+  if(dur===null) return null;
+  return dur - daysBetween(new Date(s.openDate+'T00:00:00'), TODAY);
 }
 function getPredEnd(p, s){
   if(!s.openDate) return null;
-  return addDays(new Date(s.openDate+'T00:00:00'), getEffectiveDur(p, s));
+  const dur = getEffectiveDur(p, s);
+  if(dur===null) return null;
+  return addDays(new Date(s.openDate+'T00:00:00'), dur);
 }
 // Priority logic:
 // • Has stock (1+) at home → always 'ok' (no need to buy)
@@ -628,7 +672,7 @@ function getPredEnd(p, s){
 //     - rem ≤ 40% of dur   → em breve
 //     - rem ≤ 60% of dur   → observar
 //     - rem >  60% of dur  → ok
-// • No open product registered → observar
+// • No open product registered, or custom product without estimate → observar
 function getPrio(p, s){
   const hasStock = s.inStock === true && (parseInt(s.stockQty)||0) > 0;
   if(hasStock) return 'ok';
@@ -636,6 +680,7 @@ function getPrio(p, s){
   if(dr===null) return 'obs';
   if(dr<=0) return 'urg';
   const dur = getEffectiveDur(p, s);
+  if(!dur) return 'obs';
   const pct = dr / dur;
   if(pct <= 0.40) return 'sn';
   if(pct <= 0.60) return 'obs';
@@ -688,18 +733,28 @@ function getPersonalStats(prodId){
   };
 }
 
-// Effective rate to use for predictions: personal if available, else catalog
-// Returns {rate, source} where source = 'personal' or 'catalog'
+// Effective rate to use for predictions
+// Returns {rate, source, n}
+//   source = 'personal' | 'mixed' | 'catalog' | 'none' (custom product without history)
 function getEffectiveRate(p, s){
   const stats = getPersonalStats(p.id);
   if(stats && stats.personalRate && stats.nRecent >= 2){
     return {rate: stats.personalRate, source: 'personal', n: stats.nRecent};
   }
-  // Single cycle: average catalog + personal so we don't swing too hard
-  if(stats && stats.personalRate && stats.nRecent === 1){
-    return {rate: (p.rate + stats.personalRate)/2, source: 'mixed', n: 1};
+  // For products with catalog rate
+  if(p.rate){
+    if(stats && stats.personalRate && stats.nRecent === 1){
+      // Mix catalog + first personal cycle
+      return {rate: (p.rate + stats.personalRate)/2, source: 'mixed', n: 1};
+    }
+    return {rate: p.rate, source: 'catalog', n: 0};
   }
-  return {rate: p.rate, source: 'catalog', n: 0};
+  // Custom product without catalog rate: use personal alone (1 cycle counts)
+  if(stats && stats.personalRate){
+    return {rate: stats.personalRate, source: 'personal', n: stats.nRecent};
+  }
+  // No data at all yet — can't predict
+  return {rate: null, source: 'none', n: 0};
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -758,7 +813,7 @@ function finishProduct(id){
   const s = state[id]||{};
   if(!s.openDate){toast('Defina a data de abertura primeiro');return;}
   if(!confirm('Marcar este produto como finalizado hoje?\nEle será movido para o histórico.')) return;
-  const p = PROD_BY_ID[id];
+  const p = getProductById(id);
   const opened = new Date(s.openDate+'T00:00:00');
   const finished = todayISO();
   const durationDays = daysBetween(opened, TODAY);
@@ -803,22 +858,151 @@ function clearProduct(id){
 }
 
 // ──────────────────────────────────────────────────────────────
+// REMOVE / RESTORE / ADD CUSTOM PRODUCTS
+// ──────────────────────────────────────────────────────────────
+function removeProduct(id){
+  const p = getProductById(id);
+  if(!p) return;
+  if(!confirm(`Remover "${p.n}" da lista ativa?\n\nO histórico será mantido e você ainda verá os dados nas abas Histórico e Estatísticas.\nVocê pode restaurar a qualquer momento.`)) return;
+  if(!state._removed) state._removed = {};
+  state._removed[id] = true;
+  saveState();
+  toast('produto removido da lista');
+  render();
+}
+
+function restoreProduct(id){
+  if(state._removed && state._removed[id]){
+    delete state._removed[id];
+    saveState();
+    toast('produto restaurado');
+    render();
+  }
+}
+
+function generateCustomId(name){
+  // Build a slug from the name, with a short random suffix to avoid collisions
+  const slug = (name||'')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // strip accents
+    .replace(/[^a-z0-9]+/g,'_')
+    .replace(/^_+|_+$/g,'')
+    .slice(0, 20);
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return 'cu_' + (slug||'prod') + '_' + suffix;
+}
+
+function openAddProduct(){
+  modalMode = 'addProduct';
+  document.getElementById('modalTitle').innerHTML = '<i class="ti ti-plus" style="color:var(--pu);font-size:18px;vertical-align:middle"></i> adicionar produto';
+  document.getElementById('modalDesc').innerHTML = 'Cadastre um produto novo. A duração será calculada após você finalizar o primeiro uso. Depois disso, o app se ajusta com a média dos seus últimos ciclos.';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="modal-form">
+      <div>
+        <label>nome do produto *</label>
+        <input type="text" id="newProdName" placeholder="ex: Máscara de argila" maxlength="50">
+      </div>
+      <div>
+        <label>categoria *</label>
+        <select id="newProdCat" style="width:100%;padding:9px 11px;font-size:13px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
+          <option value="sk">✨ skincare</option>
+          <option value="ca">💇 cabelos</option>
+          <option value="mk">💄 maquiagem</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px">
+        <div>
+          <label>tamanho padrão *</label>
+          <input type="number" id="newProdSize" placeholder="ex: 100" min="1" step="0.5">
+        </div>
+        <div>
+          <label>unidade *</label>
+          <select id="newProdUn" style="width:100%;padding:9px 11px;font-size:13px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit">
+            <option value="ml">ml</option>
+            <option value="g">g</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>marca/referência (opcional)</label>
+        <input type="text" id="newProdRef" placeholder="ex: La Roche Posay 100ml" maxlength="80">
+      </div>
+    </div>
+  `;
+  document.getElementById('modalAction').style.display = '';
+  document.getElementById('modalAction').innerHTML = '<i class="ti ti-check"></i> adicionar';
+  document.getElementById('modalBg').classList.add('show');
+}
+
+function saveNewProduct(){
+  const name = document.getElementById('newProdName').value.trim();
+  const cat = document.getElementById('newProdCat').value;
+  const sz = parseFloat(document.getElementById('newProdSize').value);
+  const un = document.getElementById('newProdUn').value;
+  const ref = document.getElementById('newProdRef').value.trim();
+
+  if(!name){ alert('Digite o nome do produto'); return; }
+  if(!sz || sz<=0){ alert('Tamanho deve ser maior que zero'); return; }
+
+  const id = generateCustomId(name);
+  if(!state._custom) state._custom = {};
+  state._custom[id] = {
+    n: name, cat, sz, un,
+    ref: ref || `${sz}${un}`
+  };
+  saveState();
+  closeModal();
+  toast('produto adicionado!');
+  render();
+}
+
+function openRemovedProducts(){
+  const removed = state._removed||{};
+  const removedIds = Object.keys(removed);
+  modalMode = 'removed';
+  document.getElementById('modalTitle').innerHTML = '<i class="ti ti-archive" style="color:var(--pu);font-size:18px;vertical-align:middle"></i> produtos removidos';
+  if(removedIds.length === 0){
+    document.getElementById('modalDesc').innerHTML = 'Nenhum produto foi removido da lista ativa.';
+    document.getElementById('modalBody').innerHTML = '';
+  } else {
+    document.getElementById('modalDesc').innerHTML = 'Estes produtos foram removidos da lista mas o histórico foi preservado. Clique em restaurar para trazer de volta.';
+    let html = '<div class="hist-list">';
+    removedIds.forEach(id=>{
+      const p = getProductById(id);
+      if(!p) return;
+      html += `<div class="hist-item">
+        <span class="cat-dot ${p.cat}"></span>
+        <div class="hist-main">
+          <div class="hl">${escHtml(p.n)}</div>
+          <div class="hs">${escHtml(p.ref||'')} · ${p.sz}${p.un}</div>
+        </div>
+        <button class="icon-btn" onclick="restoreProduct('${id}');openRemovedProducts()" title="restaurar"><i class="ti ti-restore"></i> restaurar</button>
+      </div>`;
+    });
+    html += '</div>';
+    document.getElementById('modalBody').innerHTML = html;
+  }
+  document.getElementById('modalAction').style.display = 'none';
+  document.getElementById('modalBg').classList.add('show');
+}
+
+// ──────────────────────────────────────────────────────────────
 // RENDER
 // ──────────────────────────────────────────────────────────────
 function getFiltered(){
   const q = (document.getElementById('search')||{}).value||'';
-  return PRODUCTS.filter(p=>{
+  return getActiveProducts().filter(p=>{
     const s = state[p.id]||{};
     const pr = getPrio(p, s);
     const catOk = filterMode==='all'||filterMode===pr||filterMode===p.cat;
-    const srOk = !q || p.n.toLowerCase().includes(q.toLowerCase()) || p.ref.toLowerCase().includes(q.toLowerCase());
+    const srOk = !q || p.n.toLowerCase().includes(q.toLowerCase()) || (p.ref||'').toLowerCase().includes(q.toLowerCase());
     return catOk && srOk;
   });
 }
 
 function renderSummary(){
   const c={urg:0,sn:0,obs:0,ok:0};
-  PRODUCTS.forEach(p=>{c[getPrio(p, state[p.id]||{})]++;});
+  getActiveProducts().forEach(p=>{c[getPrio(p, state[p.id]||{})]++;});
   document.getElementById('sumGrid').innerHTML = `
     <div class="sum-card"><div class="lbl">urgente</div><div class="val urg">${c.urg}</div></div>
     <div class="sum-card"><div class="lbl">em breve</div><div class="val sn">${c.sn}</div></div>
@@ -866,26 +1050,32 @@ function buildCard(p){
   const has = s.inStock===true;
   const qty = parseInt(s.stockQty)||0;
   const stockLabel = has ? (qty>1?`${qty} em estoque`:'1 em estoque') : '';
-  const predStr = pe ? fmtDate(pe) : (s.openDate?'calculando…':'—');
-  const remStr = dr===null ? '—' : (dr<=0?`passou ${Math.abs(dr)}d`:dr+' dias');
   const sizeUsed = parseFloat(s.openSize) || p.sz;
   const eff = getEffectiveRate(p, s);
-  const catalogDur = Math.round(p.rate * p.sz);
-  const yourDur = Math.round(eff.rate * p.sz);
+  const noEstimate = !eff.rate;
+  const predStr = noEstimate ? '—' : (pe ? fmtDate(pe) : (s.openDate?'calculando…':'—'));
+  const remStr = noEstimate ? '—' : (dr===null ? '—' : (dr<=0?`passou ${Math.abs(dr)}d`:dr+' dias'));
+  const yourDur = eff.rate ? Math.round(eff.rate * p.sz) : null;
   const sourceTag = eff.source === 'personal'
     ? `<span class="src-tag personal" title="baseado nos seus ${eff.n} últimos ciclos"><i class="ti ti-user-check"></i> seus dados</span>`
     : eff.source === 'mixed'
       ? `<span class="src-tag mixed" title="média entre seu 1º ciclo e estimativa inicial"><i class="ti ti-arrows-shuffle"></i> ajustado</span>`
-      : '';
-  const effRateLbl = `~${yourDur}d / ${p.sz}${p.un}${eff.source==='personal'?' (sua média)':''}`;
+      : eff.source === 'none'
+        ? `<span class="src-tag none" title="finalize o primeiro ciclo para calcular"><i class="ti ti-help"></i> sem dados</span>`
+        : '';
+  const effRateLbl = yourDur
+    ? `~${yourDur}d / ${p.sz}${p.un}${eff.source==='personal'?' (sua média)':''}`
+    : `sem estimativa — finalize o 1º para calcular`;
+  const isCustom = !!p._custom;
+  const durDisplay = dur ? `${dur} dias / ${sizeUsed}${p.un}` : '—';
 
-  return `<div class="prod-card" id="card_${p.id}">
+  return `<div class="prod-card${isCustom?' custom':''}" id="card_${p.id}">
     <div class="prod-header" onclick="toggleCard('${p.id}')">
       <div class="prod-left">
         <span class="cat-dot ${p.cat}"></span>
         <div class="prod-info">
-          <div class="prod-name">${p.n}</div>
-          <div class="prod-meta">${p.ref} · ${effRateLbl}</div>
+          <div class="prod-name">${p.n}${isCustom?' <span class="custom-tag">custom</span>':''}</div>
+          <div class="prod-meta">${p.ref||''} ${p.ref?'· ':''}${effRateLbl}</div>
         </div>
       </div>
       <div class="right-stack">
@@ -910,7 +1100,7 @@ function buildCard(p){
         </div>
         <div class="det-block">
           <div class="dl"><i class="ti ti-ruler"></i> duração estimada ${sourceTag}</div>
-          <div class="dv">${dur} dias / ${sizeUsed}${p.un}</div>
+          <div class="dv">${durDisplay}</div>
         </div>
       </div>
       ${renderBar(dr, dur)}
@@ -929,7 +1119,7 @@ function buildCard(p){
           </div>
           <div class="form-group">
             <label><i class="ti ti-bookmark"></i> marca/variante</label>
-            <input type="text" id="brand_${p.id}" value="${escHtml(s.brand||'')}" placeholder="ex: ${p.ref}">
+            <input type="text" id="brand_${p.id}" value="${escHtml(s.brand||'')}" placeholder="ex: ${p.ref||'marca'}">
           </div>
           <div class="form-group">
             <label><i class="ti ti-cash"></i> preço (R$)</label>
@@ -952,7 +1142,8 @@ function buildCard(p){
         <div class="action-bar">
           <button class="btn btn-primary" onclick="saveProduct('${p.id}')"><i class="ti ti-device-floppy"></i> salvar</button>
           ${s.openDate?`<button class="btn btn-finish" onclick="finishProduct('${p.id}')"><i class="ti ti-circle-check"></i> finalizar</button>`:''}
-          ${s.openDate?`<button class="btn btn-danger" onclick="clearProduct('${p.id}')"><i class="ti ti-trash"></i> limpar</button>`:''}
+          ${s.openDate?`<button class="btn btn-danger" onclick="clearProduct('${p.id}')"><i class="ti ti-trash"></i> limpar aberto</button>`:''}
+          <button class="btn btn-danger" onclick="removeProduct('${p.id}')" style="margin-left:auto"><i class="ti ti-archive"></i> remover da lista</button>
         </div>
       </div>
 
@@ -985,9 +1176,9 @@ function renderProdutos(){
 }
 
 function renderHistorico(){
-  // Flatten all history entries
+  // Flatten all history entries — includes removed products (history is preserved)
   const allEntries = [];
-  PRODUCTS.forEach(p=>{
+  getAllProducts().forEach(p=>{
     const s = state[p.id]||{};
     (s.history||[]).forEach((h,idx)=>{
       allEntries.push({...h, prodId:p.id, prod:p, idx});
@@ -1037,9 +1228,9 @@ function renderHistorico(){
 }
 
 function renderStats(){
-  // Collect all finished products
+  // Collect all finished products (including removed ones, history is preserved)
   const allEntries = [];
-  PRODUCTS.forEach(p=>{
+  getAllProducts().forEach(p=>{
     const s = state[p.id]||{};
     (s.history||[]).forEach(h=>{ allEntries.push({...h, prod:p}); });
   });
@@ -1143,6 +1334,7 @@ function render(){
 let modalMode='export';
 function openExport(){
   modalMode='export';
+  document.getElementById('modalAction').style.display='';
   document.getElementById('modalTitle').textContent='exportar dados';
   document.getElementById('modalDesc').innerHTML='Copie este texto e salve em algum lugar seguro (Google Keep, Drive, email). Para usar no celular ou em outro navegador, cole no campo <strong>importar</strong>.';
   document.getElementById('modalBody').innerHTML = `<textarea id="modalText" readonly>${JSON.stringify(state, null, 2)}</textarea>`;
@@ -1151,6 +1343,7 @@ function openExport(){
 }
 function openImport(){
   modalMode='import';
+  document.getElementById('modalAction').style.display='';
   document.getElementById('modalTitle').textContent='importar dados';
   document.getElementById('modalDesc').innerHTML='Cole aqui o JSON exportado de outro dispositivo. <strong style="color:var(--rd)">Isso substitui todos os dados atuais.</strong>';
   document.getElementById('modalBody').innerHTML = `<textarea id="modalText"></textarea>`;
@@ -1161,6 +1354,14 @@ function closeModal(){document.getElementById('modalBg').classList.remove('show'
 function modalConfirm(){
   if(modalMode==='sync'){
     saveSyncSettings();
+    return;
+  }
+  if(modalMode==='addProduct'){
+    saveNewProduct();
+    return;
+  }
+  if(modalMode==='removed'){
+    closeModal();
     return;
   }
   if(modalMode==='copyGistId'){
