@@ -328,10 +328,10 @@ const PRODUCTS = [
   {id:'olhos',n:'Creme para olhos',cat:'sk',rate:4.4000,sz:30,un:'ml',ref:'AHC 30ml'},
   {id:'fps',n:'Protetor solar',cat:'sk',rate:1.5750,sz:50,un:'ml',ref:'Skin1004 50ml'},
   {id:'dema',n:'Óleo demaquilante',cat:'sk',rate:0.7444,sz:180,un:'ml',ref:'Hadalabo 180ml'},
-  {id:'lip',n:'Lip mask noite',cat:'sk',rate:10.000,sz:20,un:'g',ref:'Laneige 20g'},
+  {id:'lip',n:'Lip mask noite',cat:'sk',rate:19.750,sz:20,un:'g',ref:'Laneige 20g (~13 meses)'},
   {id:'lipb',n:'Hidratante labial',cat:'sk',rate:10.000,sz:20,un:'g',ref:'Carmex / Nivea'},
   {id:'anti',n:'Anti aging',cat:'sk',rate:12.000,sz:30,un:'g',ref:'Creamy 30g'},
-  {id:'esf',n:'Esfoliante facial',cat:'sk',rate:1.3000,sz:100,un:'g',ref:'Dermalogica 100g'},
+  {id:'esf',n:'Esfoliante facial',cat:'sk',rate:7.3919,sz:74,un:'g',ref:'Dermalogica 74g (~18 meses)'},
   {id:'ure',n:'Loção ureia',cat:'sk',rate:0.2825,sz:400,un:'ml',ref:'Isdin 400ml'},
   {id:'bsp',n:'Body splash',cat:'sk',rate:0.7110,sz:200,un:'ml',ref:'Natura 200ml'},
   {id:'deo',n:'Desodorante gel',cat:'sk',rate:0.4244,sz:45,un:'g',ref:'Secret 45g (~19d)'},
@@ -1067,14 +1067,18 @@ function buildCard(p){
     ? `~${yourDur}d / ${p.sz}${p.un}${eff.source==='personal'?' (sua média)':''}`
     : `sem estimativa — finalize o 1º para calcular`;
   const isCustom = !!p._custom;
+  // Show "novo" tag only while custom product has no finished cycles yet.
+  // Once it has 1+ history entries, it's calibrated — tag is no longer useful.
+  const histCount = ((state[p.id]||{}).history||[]).length;
+  const showNewTag = isCustom && histCount === 0;
   const durDisplay = dur ? `${dur} dias / ${sizeUsed}${p.un}` : '—';
 
-  return `<div class="prod-card${isCustom?' custom':''}" id="card_${p.id}">
+  return `<div class="prod-card${showNewTag?' custom':''}" id="card_${p.id}">
     <div class="prod-header" onclick="toggleCard('${p.id}')">
       <div class="prod-left">
         <span class="cat-dot ${p.cat}"></span>
         <div class="prod-info">
-          <div class="prod-name">${p.n}${isCustom?' <span class="custom-tag">custom</span>':''}</div>
+          <div class="prod-name">${p.n}${showNewTag?' <span class="custom-tag" title="finalize o primeiro ciclo para calibrar">novo</span>':''}</div>
           <div class="prod-meta">${p.ref||''} ${p.ref?'· ':''}${effRateLbl}</div>
         </div>
       </div>
