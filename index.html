@@ -55,11 +55,11 @@ body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-i
 #search:focus{outline:none;border-color:var(--pu)}
 
 /* SUMMARY */
-.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
 .sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
 .sum-card .lbl{font-size:11px;color:var(--text-soft);margin-bottom:3px;font-weight:500}
 .sum-card .val{font-size:22px;font-weight:600;line-height:1.1}
-.val.urg{color:var(--rd)}.val.sn{color:#B07800}.val.ok{color:var(--mn)}
+.val.urg{color:var(--rd)}.val.sn{color:#B07800}.val.ok{color:var(--mn)}.val.ni{color:var(--text-mute)}
 
 /* STATS PAGE CARDS */
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px}
@@ -89,6 +89,7 @@ body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-i
 .prio-badge.sn{background:var(--aml);color:#8A5C00;border:1px solid var(--am)}
 .prio-badge.obs{background:var(--bll);color:var(--bld);border:1px solid var(--bl)}
 .prio-badge.ok{background:var(--mnl);color:var(--mnd);border:1px solid #A8DCC0}
+.prio-badge.ni{background:var(--bg);color:var(--text-mute);border:1px dashed var(--border-strong)}
 .stock-pill{font-size:10.5px;padding:3px 8px;border-radius:10px;background:var(--bg);color:var(--text-soft);white-space:nowrap;display:inline-flex;align-items:center;gap:3px;font-weight:500}
 .stock-pill.has{background:var(--mnl);color:var(--mnd)}
 .chevron{font-size:16px;color:var(--text-mute);transition:transform .2s}
@@ -239,7 +240,9 @@ select:focus{outline:none;border-color:var(--pu)}
   #app{padding:10px 10px 80px}
   .top-bar{gap:8px}
   .brand{font-size:16px}
-  .summary-grid{grid-template-columns:repeat(2,1fr)}
+  .summary-grid{grid-template-columns:repeat(3,1fr)}
+  .sum-card{padding:8px 10px}
+  .sum-card .val{font-size:19px}
   .form-row,.detail-grid{grid-template-columns:1fr}
   .tab{font-size:12px;padding:8px 4px;gap:3px}
   .tab .ti{font-size:13px}
@@ -277,6 +280,7 @@ select:focus{outline:none;border-color:var(--pu)}
       <button class="chip" onclick="setFilter('sn',this)">em breve</button>
       <button class="chip" onclick="setFilter('obs',this)">observar</button>
       <button class="chip" onclick="setFilter('ok',this)">ok</button>
+      <button class="chip" onclick="setFilter('ni',this)">não iniciados</button>
       <button class="chip" onclick="setFilter('sk',this)">skincare</button>
       <button class="chip" onclick="setFilter('ca',this)">cabelos</button>
       <button class="chip" onclick="setFilter('mk',this)">make</button>
@@ -666,14 +670,16 @@ function getPredEnd(p, s){
   return addDays(new Date(s.openDate+'T00:00:00'), dur);
 }
 // Priority logic:
+// • No open date registered at all → 'não iniciado' (produto nunca foi aberto)
 // • Has stock (1+) at home → always 'ok' (no need to buy)
 // • No stock: uses % of estimated duration
 //     - overdue (rem ≤ 0)  → urgente
 //     - rem ≤ 40% of dur   → em breve
 //     - rem ≤ 60% of dur   → observar
 //     - rem >  60% of dur  → ok
-// • No open product registered, or custom product without estimate → observar
+// • Open, but custom product without estimate yet → observar
 function getPrio(p, s){
+  if(!s.openDate) return 'ni';
   const hasStock = s.inStock === true && (parseInt(s.stockQty)||0) > 0;
   if(hasStock) return 'ok';
   const dr = getDaysRemaining(p, s);
@@ -686,7 +692,7 @@ function getPrio(p, s){
   if(pct <= 0.60) return 'obs';
   return 'ok';
 }
-function prioLabel(pr){return {urg:'urgente',sn:'em breve',obs:'observar',ok:'ok'}[pr];}
+function prioLabel(pr){return {urg:'urgente',sn:'em breve',obs:'observar',ok:'ok',ni:'não iniciado'}[pr];}
 function catLabel(c){return {sk:'skincare',ca:'cabelos',mk:'maquiagem'}[c];}
 
 // Personal duration stats from history
@@ -1001,13 +1007,14 @@ function getFiltered(){
 }
 
 function renderSummary(){
-  const c={urg:0,sn:0,obs:0,ok:0};
+  const c={urg:0,sn:0,obs:0,ok:0,ni:0};
   getActiveProducts().forEach(p=>{c[getPrio(p, state[p.id]||{})]++;});
   document.getElementById('sumGrid').innerHTML = `
     <div class="sum-card"><div class="lbl">urgente</div><div class="val urg">${c.urg}</div></div>
     <div class="sum-card"><div class="lbl">em breve</div><div class="val sn">${c.sn}</div></div>
     <div class="sum-card"><div class="lbl">observar</div><div class="val">${c.obs}</div></div>
-    <div class="sum-card"><div class="lbl">ok</div><div class="val ok">${c.ok}</div></div>`;
+    <div class="sum-card"><div class="lbl">ok</div><div class="val ok">${c.ok}</div></div>
+    <div class="sum-card"><div class="lbl">não iniciados</div><div class="val ni">${c.ni}</div></div>`;
 }
 
 function renderBar(rem, dur){
@@ -1164,8 +1171,8 @@ function renderProdutos(){
     area.innerHTML = '<div class="empty-state"><i class="ti ti-search-off"></i><div class="ttl">nenhum produto encontrado</div><div class="sub">tente ajustar os filtros</div></div>';
     return;
   }
-  const prios=['urg','sn','obs','ok'];
-  const titles={urg:'🔴 urgente — comprar agora',sn:'🟡 em breve',obs:'🔵 observar',ok:'🟢 ok'};
+  const prios=['urg','sn','obs','ok','ni'];
+  const titles={urg:'🔴 urgente — comprar agora',sn:'🟡 em breve',obs:'🔵 observar',ok:'🟢 ok',ni:'⚪ não iniciados — sem data de abertura'};
   const grouped={};
   f.forEach(p=>{const pr=getPrio(p,state[p.id]||{});(grouped[pr]=grouped[pr]||[]).push(p);});
   let html='';
